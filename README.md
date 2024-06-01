@@ -17,6 +17,64 @@ Saverava merges Strava running clubs with web3 wallets for a unique "run-to-earn
 6. **Distribution of Stakes**: When a runner is slashed, their stake is distributed proportionally among the remaining members.
 7. **End of Duration**: At the end of the club duration, runners who have not been slashed can claim their initial stake plus any interest earned and shares from social slashing.
 
+### A Real Example
+
+#### Scenario
+
+Let's walk through a real example to illustrate how Saverava works. Suppose we have a running club called "10-Mile Challengers" with the following requirements:
+- Each member must run at least 10 miles per week.
+- The challenge lasts for 3 months.
+- Each member stakes 50 USDC to join.
+
+**Members:**
+- Alice
+- Bob
+- Charlie
+- Dave (Club Owner)
+
+#### Joining the Club
+
+1. **Alice, Bob, and Charlie** decide to join "10-Mile Challengers."
+2. **Alice** stakes 50 USDC and joins the club.
+3. **Bob** stakes 50 USDC and joins the club.
+4. **Charlie** stakes 50 USDC and joins the club.
+5. **Dave** (Club Owner) stakes 50 USDC and joins the club.
+
+#### Running and Tracking
+
+1. Each member uses Strava to track their runs.
+2. In the first week, Alice and Bob complete their 10 miles, but Charlie only runs 5 miles.
+
+#### Social Slashing
+
+1. **Alice** notices that **Charlie** did not meet the 10-mile requirement and proposes to slash him.
+2. **Bob** also proposes to slash **Charlie** for not meeting the requirement.
+3. The smart contract records these proposals and notifies **Dave** (the Club Owner).
+
+#### Club Owner Veto
+
+1. **Dave** reviews the slash proposals.
+2. **Dave** decides not to veto the slashing.
+
+#### Slashing Execution
+
+1. Since **Charlie** has been slashed by two members and the club owner did not veto, the smart contract confirms the slashing.
+2. **Charlie's** 50 USDC stake is distributed among **Alice**, **Bob**, and **Dave** proportionally.
+3. **Alice**, **Bob**, and **Dave** each receive 16.67 USDC from **Charlie's** stake.
+
+#### Completion of Duration
+
+1. At the end of the 3-month duration, **Alice**, **Bob**, and **Dave** have consistently met the 10-mile requirement every week.
+2. **Alice**, **Bob**, and **Dave** can claim back their initial 50 USDC stake plus any additional USDC earned from slashing incidents and interest.
+3. **Charlie** does not receive any USDC back because he was slashed.
+
+#### Summary
+
+- **Alice, Bob, and Dave** each claim back their initial 50 USDC plus 16.67 USDC from Charlie’s slashing, resulting in a total of 66.67 USDC.
+- **Charlie** loses his entire 50 USDC stake due to not meeting the club’s requirements.
+
+This example demonstrates how Saverava's combination of Strava integration, staking, and social slashing mechanisms ensures fair play and rewards consistent runners.
+
 ## Application Architecture
 
 ### Frontend
