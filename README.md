@@ -182,6 +182,31 @@ interface IClubPool {
 
 ## User Flow Diagrams
 
+#### Club Life Cycle
+```mermaid
+graph TD
+    A[User Joins Club] -->|Stake USDC| B{Club Started?}
+    B -->|No| C[Wait for Club to Start]
+    B -->|Yes| D[Run Tracking via Strava]
+    
+    D --> E{Meets Requirements?}
+    E -->|No| F[Member Proposes Slash]
+    F --> G{Second Member Proposes Slash?}
+    G -->|No| H[Await Second Slash Proposal]
+    G -->|Yes| I[Club Owner Veto?]
+    
+    I -->|Yes| J[Slash Vetoed]
+    I -->|No| K[Member Slashed]
+    K --> L[Redistribute Slashed Stake]
+    
+    E -->|Yes| M[Continue Running]
+    
+    L --> M
+    M -->|End of Duration| N[Claim Rewards]
+    N --> O[Stake + Interest + Slashing Rewards]
+
+```
+
 #### Joining a Club
 
 ```mermaid
