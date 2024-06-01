@@ -107,53 +107,82 @@ This example demonstrates how Saverava's combination of Strava integration, stak
 - **/clubs/claim**: Endpoint to claim rewards at the end of the duration
 - **/activities**: Fetches activities from Strava
 
-## Sample Smart Contract Interfaces
+## Smart Contract Architecture
 
-**Join Pool Contract**:
+### Club Pool Contract
 ```solidity
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract ClubPool {
-    address public owner;
-    uint256 public stakeAmount;
-    uint256 public duration;
-    uint256 public startTime;
-    uint256 public endTime;
-    mapping(address => uint256) public stakes;
-    mapping(address => bool) public isSlashed;
+/// @title IClubPool Interface
+/// @notice Interface for the ClubPool contract
+interface IClubPool {
 
-    constructor(uint256 _stakeAmount, uint256 _duration) {
-        owner = msg.sender;
-        stakeAmount = _stakeAmount;
-        duration = _duration;
-        startTime = block.timestamp;
-        endTime = block.timestamp + _duration;
-    }
+    /// @notice Event emitted when a member joins the club
+    /// @param member The address of the member
+    /// @param amount The amount staked by the member
+    event Joined(address indexed member, uint256 amount);
 
-    function join() public payable {
-        require(msg.value == stakeAmount, "Incorrect stake amount");
-        require(block.timestamp < startTime, "Club already started");
-        stakes[msg.sender] += msg.value;
-    }
+    /// @notice Event emitted when a runner is slashed
+    /// @param runner The address of the slashed runner
+    event Slashed(address indexed runner);
 
-    function slash(address _runner) public {
-        require(block.timestamp < endTime, "Club already ended");
-        require(!isSlashed[_runner], "Runner already slashed");
-        isSlashed[_runner] = true;
-    }
+    /// @notice Event emitted when a slashing is vetoed by the owner
+    /// @param runner The address of the runner whose slashing was vetoed
+    event Vetoed(address indexed runner);
 
-    function claim() public {
-        require(block.timestamp >= endTime, "Club not ended yet");
-        require(!isSlashed[msg.sender], "You have been slashed");
-        uint256 reward = stakes[msg.sender]; // Calculate rewards
-        stakes[msg.sender] = 0;
-        payable(msg.sender).transfer(reward);
-    }
+    /// @notice Event emitted when a member claims their stake and rewards
+    /// @param member The address of the member
+    /// @param amount The total amount claimed by the member
+    event Claimed(address indexed member, uint256 amount);
+
+    /// @notice Allows a user to join the club by staking the required amount of USDC
+    /// @dev Emits a `Joined` event upon successful join
+    function join() external payable;
+
+    /// @notice Starts the club, setting the start and end times based on the duration
+    /// @dev Can only be called by the owner and only if the club has not started
+    function startClub() external;
+
+    /// @notice Proposes to slash a runner who has not met the club's requirements
+    /// @param _runner The address of the runner to be slashed
+    /// @dev Emits a `Slashed` event if the runner is successfully slashed
+    function proposeSlash(address _runner) external;
+
+    /// @notice Allows the club owner to veto a slashing proposal
+    /// @param _runner The address of the runner whose slashing is to be vetoed
+    /// @dev Emits a `Vetoed` event upon successful veto
+    function vetoSlash(address _runner) external;
+
+    /// @notice Allows members who have not been slashed to claim their initial stake plus any additional USDC earned from slashed stakes
+    /// @dev Emits a `Claimed` event upon successful claim
+    function claim() external;
+
+    /// @notice Gets the total amount of stakes in the club
+    /// @return The total stakes in the club
+    function totalStakes() external view returns (uint256);
+
+    /// @notice Checks if a runner is slashed
+    /// @param _runner The address of the runner
+    /// @return True if the runner is slashed, otherwise false
+    function isSlashed(address _runner) external view returns (bool);
+
+    /// @notice Gets the amount staked by a member
+    /// @param _member The address of the member
+    /// @return The amount staked by the member
+    function stakes(address _member) external view returns (uint256);
+
+    /// @notice Gets the number of slash votes for a runner
+    /// @param _runner The address of the runner
+    /// @return The number of slash votes for the runner
+    function slashVotes(address _runner) external view returns (uint256);
 }
-```
-## Diagrams
 
-### Join Pool Contract Sequence Diagram
+```
+
+## User Flow Diagrams
+
+#### Joining a Club
 
 ```mermaid
 sequenceDiagram
@@ -177,7 +206,26 @@ sequenceDiagram
     end
 ```
 
-### Slash Runner Sequence Diagram
+#### Starting the Club
+
+```mermaid
+sequenceDiagram
+    participant Owner
+    participant WebApp
+    participant SmartContract
+
+    Owner->>WebApp: Start Club
+    WebApp->>SmartContract: startClub()
+    SmartContract->>WebApp: Club Started
+    WebApp->>Owner: Confirmation
+
+    alt Club Already Started
+        SmartContract->>WebApp: Error Message
+        WebApp->>Owner: Display Error
+    end
+```
+
+#### Proposing a Slash
 
 ```mermaid
 sequenceDiagram
@@ -222,10 +270,9 @@ sequenceDiagram
         WebApp->>Member1: Display Error
         WebApp->>Member2: Display Error
     end
-
 ```
 
-### Claim Rewards Sequence Diagram
+#### Claiming Rewards
 
 ```mermaid
 sequenceDiagram
@@ -248,6 +295,7 @@ sequenceDiagram
         WebApp->>User: Display Error
     end
 ```
+
 
 These diagrams outline the key interactions between users, the web application, and the smart contracts for joining a club, slashing a runner, and claiming rewards.
 
