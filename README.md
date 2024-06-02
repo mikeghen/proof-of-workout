@@ -324,3 +324,118 @@ sequenceDiagram
 
 These diagrams outline the key interactions between users, the web application, and the smart contracts for joining a club, slashing a runner, and claiming rewards.
 
+
+## Frontent Wireframes
+
+### Login Page
+
+```
++--------------------------------+
+|           Saverava             |
+|--------------------------------|
+|  [ Login with Strava ]         |
++--------------------------------+
+```
+
+### Dashboard
+
+```
++--------------------------------+
+|          Dashboard             |
+|--------------------------------|
+|  Club: 10-Mile Challengers     |
+|  ----------------------------  |
+|  Your Stats:                   |
+|  Miles Run: 20                 |
+|  Next Run: 5 miles in 2 days   |
+|                                |
+|  [ View Club Details ]         |
++--------------------------------+
+```
+
+### Club View
+
+```
++--------------------------------+
+|        10-Mile Challengers      |
+|--------------------------------|
+|  Duration: 3 months            |
+|  Requirement: 10 miles/week    |
+|  Stake: 50 USDC                |
+|                                |
+|  Members:                      |
+|  - Alice (12 miles)            |
+|  - Bob (10 miles)              |
+|  - Charlie (5 miles)           |
+|  - Dave (Owner) (15 miles)     |
+|                                |
+|  [ Propose Slash - Charlie ]   |
+|                                |
+|  [ Veto Slash ]                |
++--------------------------------+
+```
+
+### Activity View
+
+```
++--------------------------------+
+|         Activity Details       |
+|--------------------------------|
+|  Run Date: 2024-06-01          |
+|  Distance: 5 miles             |
+|  Time: 40 minutes              |
+|  Route: [View Map]             |
+|                                |
+|  Pace: 8 min/mile              |
+|  Calories Burned: 500          |
++--------------------------------+
+```
+
+### Profile Page
+
+```
++--------------------------------+
+|          Your Profile          |
+|--------------------------------|
+|  Name: Alice                   |
+|  Total Miles: 120              |
+|  Clubs Joined: 2               |
+|  Stakes: 100 USDC              |
+|                                |
+|  [ Edit Profile ]              |
+|  [ Settings ]                  |
++--------------------------------+
+```
+
+### Slash Proposal Confirmation
+
+```
++--------------------------------+
+|      Slash Proposal            |
+|--------------------------------|
+|  You have proposed to slash:   |
+|  - Charlie                     |
+|                                |
+|  Total Votes: 1/2              |
+|                                |
+|  [ Confirm Slash ]             |
+|  [ Cancel ]                    |
++--------------------------------+
+```
+
+### Claim Rewards
+
+```
++--------------------------------+
+|          Claim Rewards         |
+|--------------------------------|
+|  Club: 10-Mile Challengers     |
+|  Duration: 3 months            |
+|                                |
+|  Your Stake: 50 USDC           |
+|  Slashing Rewards: 16.67 USDC  |
+|  Total: 66.67 USDC             |
+|                                |
+|  [ Claim Now ]                 |
++--------------------------------+
+```
