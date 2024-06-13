@@ -2,12 +2,10 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IClubPool} from "./interfaces/IClubPool.sol";
 
 /// @title IClubPool Interface
 /// @notice Interface for the ClubPool contract
-
 
 contract ClubPool is IClubPool {
     IERC20 public usdc;
@@ -15,6 +13,7 @@ contract ClubPool is IClubPool {
     uint256 public endTime;
     uint256 public totalStake;
     bool public started;
+    address owner;
 
     struct Member {
         uint256 stake;
@@ -35,27 +34,29 @@ contract ClubPool is IClubPool {
         _;
     }
 
-    constructor(address _usdc, uint256 _duration) {
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the Owner");
+        _;
+    }
+
+    constructor(address _usdc, uint256 _duration, address _owner) {
         usdc = IERC20(_usdc);
         duration = _duration;
+        owner = _owner;
     }
 
     function join() external payable override onlyNotStarted {
         require(usdc.transferFrom(msg.sender, address(this), 50 * 1e6), "USDC transfer failed");
         require(members[msg.sender].stake == 0, "Already a member");
 
-        members[msg.sender] = Member({
-            stake: 50 * 1e6,
-            slashed: false,
-            slashVotes: 0
-        });
+        members[msg.sender] = Member({stake: 50 * 1e6, slashed: false, slashVotes: 0});
         memberList.push(msg.sender);
         totalStake += 50 * 1e6;
 
         emit Joined(msg.sender, 50 * 1e6);
     }
 
-    function startClub() external override onlyNotStarted {
+    function startClub() external override onlyNotStarted onlyOwner {
         started = true;
         endTime = block.timestamp + duration;
     }
@@ -81,8 +82,7 @@ contract ClubPool is IClubPool {
         }
     }
 
-    // Add access control Only onwer needed
-    function vetoSlash(address _runner) external override onlyStarted {
+    function vetoSlash(address _runner) external override onlyStarted onlyOwner {
         require(members[_runner].slashed, "Runner not slashed");
 
         members[_runner].slashed = false;
@@ -126,7 +126,7 @@ contract ClubPool is IClubPool {
      * @param distance The distance covered in the activity.
      * @param time The time taken for the activity.
      */
-    function recordActivity(uint userId, uint activityId, uint distance, uint time) external override {
+    function recordActivity(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external override {
         // Implementation for recording activity
         emit ActivityRecorded(userId, activityId, distance, time);
     }

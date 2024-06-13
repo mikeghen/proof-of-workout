@@ -3,7 +3,6 @@ pragma solidity ^0.8.20;
 
 import {ClubPool} from "./saverava.sol";
 import {IClubPool} from "./interfaces/IClubPool.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title ClubPoolFactory
@@ -16,16 +15,25 @@ contract ClubPoolFactory {
     /// @notice Array to store the addresses of all created ClubPool contracts.
     address[] public clubPools;
 
+    address owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the Owner");
+        _;
+    }
+
     /**
      * @notice Creates a new instance of the ClubPool contract.
      * @param _usdc The address of the USDC token contract.
      * @param _duration The duration for the ClubPool.
      * @return The address of the newly created ClubPool contract.
      */
-
-    // Add only owner
-    function createClubPool(address _usdc, uint256 _duration) external returns (address) {
-        ClubPool clubPool = new ClubPool(_usdc, _duration);
+    function createClubPool(address _usdc, uint256 _duration, address) external onlyOwner returns (address) {
+        ClubPool clubPool = new ClubPool(_usdc, _duration, msg.sender);
         clubPools.push(address(clubPool));
         emit ClubPoolCreated(address(clubPool), msg.sender);
         return address(clubPool);

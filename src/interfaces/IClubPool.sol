@@ -6,7 +6,7 @@ interface IClubPool {
     event Slashed(address indexed runner);
     event Vetoed(address indexed runner);
     event Claimed(address indexed member, uint256 amount);
-    event ActivityRecorded(uint userId, uint activityId, uint distance, uint time);
+    event ActivityRecorded(uint256 userId, uint256 activityId, uint256 distance, uint256 time);
 
     function join() external payable;
     function startClub() external;
@@ -17,5 +17,5 @@ interface IClubPool {
     function isSlashed(address _runner) external view returns (bool);
     function stakes(address _member) external view returns (uint256);
     function slashVotes(address _runner) external view returns (uint256);
-    function recordActivity(uint userId, uint activityId, uint distance, uint time) external;
+    function recordActivity(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external;
 }

@@ -3,14 +3,10 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ClubPool} from "../src/saverava.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MockUSDC} from "../src/mocks/mockUsdc.sol";
 import {ClubPoolFactory} from "../src/saveravaFactory.sol";
 
-
 contract ClubPoolTest is Test {
-
-
     MockUSDC usdc;
     ClubPool clubPool;
     address owner;
@@ -20,19 +16,23 @@ contract ClubPoolTest is Test {
     ClubPoolFactory factory;
 
     function setUp() public {
-        usdc = new MockUSDC();
-        clubPool = new ClubPool(address(usdc), 12 weeks);
-
-        factory = new ClubPoolFactory();
-
         owner = address(this);
         alice = address(0x1);
         bob = address(0x2);
         charlie = address(0x3);
 
+        usdc = new MockUSDC();
+        clubPool = new ClubPool(address(usdc), 12 weeks, owner);
+
+        factory = new ClubPoolFactory();
+
         usdc.mint(alice, 100 * 1e6);
         usdc.mint(bob, 100 * 1e6);
         usdc.mint(charlie, 100 * 1e6);
+
+        // Create a ClubPool instance using the factory
+        address clubPoolAddress = factory.createClubPool(address(usdc), 12 weeks, owner);
+        clubPool = ClubPool(clubPoolAddress);
     }
 
     function testJoinClub() public {
