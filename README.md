@@ -176,6 +176,8 @@ interface IClubPool {
     /// @param _runner The address of the runner
     /// @return The number of slash votes for the runner
     function slashVotes(address _runner) external view returns (uint256);
+
+    function recordActivity(uint userId, uint activityId, uint distance, uint time) external;
 }
 
 ```
