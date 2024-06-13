@@ -118,4 +118,16 @@ contract ClubPool is IClubPool {
     function slashVotes(address _runner) external view override returns (uint256) {
         return members[_runner].slashVotes;
     }
+
+    /**
+     * @notice Records an activity for a member.
+     * @param userId The ID of the user.
+     * @param activityId The ID of the activity.
+     * @param distance The distance covered in the activity.
+     * @param time The time taken for the activity.
+     */
+    function recordActivity(uint userId, uint activityId, uint distance, uint time) external override {
+        // Implementation for recording activity
+        emit ActivityRecorded(userId, activityId, distance, time);
+    }
 }

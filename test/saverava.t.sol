@@ -24,7 +24,7 @@ contract ClubPoolTest is Test {
         clubPool = new ClubPool(address(usdc), 12 weeks);
 
         factory = new ClubPoolFactory();
-        
+
         owner = address(this);
         alice = address(0x1);
         bob = address(0x2);
@@ -154,5 +154,10 @@ contract ClubPoolTest is Test {
         (uint256 stakeCharlie,,) = clubPool.members(charlie);
         assertEq(stakeAlice, 50 * 1e6 + share);
         assertEq(stakeCharlie, 50 * 1e6 + share);
+    }
+
+    function testRecordActivity() public {
+        vm.prank(owner);
+        clubPool.recordActivity(1, 101, 5000, 3600);
     }
 }
