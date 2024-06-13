@@ -3,16 +3,10 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ClubPool} from "../src/saverava.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {MockUSDC} from "../src/mocks/mockUsdc.sol";
+import {ClubPoolFactory} from "../src/saveravaFactory.sol";
 
-
-contract MockUSDC is ERC20("MockUSDC", "USDC") {
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-}
 
 contract ClubPoolTest is Test {
 
@@ -23,10 +17,14 @@ contract ClubPoolTest is Test {
     address alice;
     address bob;
     address charlie;
+    ClubPoolFactory factory;
 
     function setUp() public {
         usdc = new MockUSDC();
         clubPool = new ClubPool(address(usdc), 12 weeks);
+
+        factory = new ClubPoolFactory();
+        
         owner = address(this);
         alice = address(0x1);
         bob = address(0x2);
