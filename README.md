@@ -12,10 +12,13 @@ Saverava is a savings game you play with your running buddies. It merges [Strava
    - Frequency of runs (e.g., weekly)
    - Duration (e.g., 3 months)
 3. **Staking**: Runners stake a specified amount of USDC to join a club.
-4. **Tracking Progress**: Runs are tracked via Strava integration.
-5. **Social Slashing**: Members can slash others who do not meet the club's requirements.
+4. **Tracking Progress**: Runs are tracked via Strava integration. The user id, activity id, distance and time for each run are put onchain.
+5. **Social Slashing**: Members can slash others who do not meet the club's requirements as recorded onchain.
 6. **Distribution of Stakes**: When a runner is slashed, their stake is distributed proportionally among the remaining members.
 7. **End of Duration**: At the end of the club duration, runners who have not been slashed can claim their initial stake plus any interest earned and shares from social slashing.
+
+### Strava Oracle
+Strava uses webhooks to alert an Oracle to new activites. This oracle is reponsible for listening for activities from Strava and recording them onchain. It adds: user id, activity id, distance and time onchain. 
 
 ### A Real Example
 
@@ -176,6 +179,8 @@ interface IClubPool {
     /// @param _runner The address of the runner
     /// @return The number of slash votes for the runner
     function slashVotes(address _runner) external view returns (uint256);
+
+    function recordActivity(uint userId, uint activityId, uint distance, uint time) external;
 }
 
 ```
