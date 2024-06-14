@@ -9,6 +9,7 @@ import {ClubPoolFactory} from "../src/saveravaFactory.sol";
 contract ClubPoolTest is Test {
     MockUSDC usdc;
     ClubPool clubPool;
+    ClubPool clubPool2;
     address owner;
     address alice;
     address bob;
@@ -24,6 +25,8 @@ contract ClubPoolTest is Test {
 
         usdc = new MockUSDC();
         clubPool = new ClubPool(address(usdc), 12 weeks, owner, stakeAmount);
+        
+        clubPool2 = new ClubPool(address(usdc), 6 weeks, owner, stakeAmount);
 
         factory = new ClubPoolFactory();
 
@@ -34,6 +37,22 @@ contract ClubPoolTest is Test {
         // Create a ClubPool instance using the factory
         address clubPoolAddress = factory.createClubPool(address(usdc), 12 weeks, owner, stakeAmount);
         clubPool = ClubPool(clubPoolAddress);
+        
+        address clubPool2Address = factory.createClubPool(address(usdc), 6 weeks, owner, stakeAmount);
+        clubPool2 = ClubPool(clubPool2Address);
+    }
+
+    modifier alice_and_bob() {
+        vm.startPrank(alice);
+        usdc.approve(address(clubPool), stakeAmount);
+        clubPool.join();
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        usdc.approve(address(clubPool), stakeAmount);
+        clubPool.join();
+        vm.stopPrank();
+        _;
     }
 
     function testJoinClub() public {
@@ -57,16 +76,7 @@ contract ClubPoolTest is Test {
         assertTrue(clubPool.started());
     }
 
-    function testProposeSlash() public {
-        vm.startPrank(alice);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
+    function testProposeSlash() alice_and_bob public {
 
         clubPool.startClub();
 
@@ -78,16 +88,7 @@ contract ClubPoolTest is Test {
         assertFalse(slashed);
     }
 
-    function testVetoSlash() public {
-        vm.startPrank(alice);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
+    function testVetoSlash() alice_and_bob public {
 
         clubPool.startClub();
 
@@ -102,18 +103,9 @@ contract ClubPoolTest is Test {
         assertFalse(slashed);
     }
 
-    function testClaimRewards() public {
-        vm.startPrank(alice);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
+    function testClaimRewards() alice_and_bob public {
 
         uint256 afterDepoistBalance = usdc.balanceOf(alice);
-
-        vm.startPrank(bob);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
 
         clubPool.startClub();
         vm.warp(block.timestamp + 12 weeks);
@@ -127,16 +119,7 @@ contract ClubPoolTest is Test {
         assertEq(usdc.balanceOf(alice), afterDepoistBalance + stakeAmount);
     }
 
-    function testProposeAndSlash() public {
-        vm.startPrank(alice);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
-
-        vm.startPrank(bob);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
+    function testProposeAndSlash() alice_and_bob public {
 
         vm.startPrank(charlie);
         usdc.approve(address(clubPool), stakeAmount);
@@ -165,5 +148,16 @@ contract ClubPoolTest is Test {
     function testRecordActivity() public {
         vm.prank(owner);
         clubPool.recordActivity(1, 101, 5000, 3600);
+    }
+
+    function testClubCount() alice_and_bob public {
+        clubPool.startClub();
+
+        vm.startPrank(charlie);
+        usdc.approve(address(clubPool2), stakeAmount);
+        clubPool2.join();
+        vm.stopPrank();
+
+        assertEq(factory.getClubPoolsCount(), 2);
     }
 }

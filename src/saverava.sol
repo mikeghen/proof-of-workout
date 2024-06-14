@@ -53,8 +53,8 @@ contract ClubPool is IClubPool {
      * @dev Transfers the specified amount of USDC from the caller to the contract.
      */
     function join() external payable override onlyNotStarted {
-        require(usdc.transferFrom(msg.sender, address(this), individualStake), "USDC transfer failed");
         require(members[msg.sender].stake == 0, "Already a member");
+        require(usdc.transferFrom(msg.sender, address(this), individualStake), "USDC transfer failed");
 
         members[msg.sender] = Member({
             stake: individualStake,
