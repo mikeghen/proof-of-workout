@@ -11,6 +11,7 @@ contract ClubPool is IClubPool {
     IERC20 public usdc;
     uint256 public duration;
     uint256 public endTime;
+    uint256 individualStake;
     uint256 public totalStake;
     bool public started;
     address owner;
@@ -39,21 +40,31 @@ contract ClubPool is IClubPool {
         _;
     }
 
-    constructor(address _usdc, uint256 _duration, address _owner) {
+    constructor(address _usdc, uint256 _duration, address _owner, uint256 _stakeAmount) {
         usdc = IERC20(_usdc);
         duration = _duration;
         owner = _owner;
+        individualStake = _stakeAmount;
     }
 
+
+    /**
+     * @notice Allows a user to join the club by staking a specific amount of USDC.
+     * @dev Transfers the specified amount of USDC from the caller to the contract.
+     */
     function join() external payable override onlyNotStarted {
-        require(usdc.transferFrom(msg.sender, address(this), 50 * 1e6), "USDC transfer failed");
+        require(usdc.transferFrom(msg.sender, address(this), individualStake), "USDC transfer failed");
         require(members[msg.sender].stake == 0, "Already a member");
 
-        members[msg.sender] = Member({stake: 50 * 1e6, slashed: false, slashVotes: 0});
+        members[msg.sender] = Member({
+            stake: individualStake,
+            slashed: false,
+            slashVotes: 0
+        });
         memberList.push(msg.sender);
-        totalStake += 50 * 1e6;
+        totalStake += individualStake;
 
-        emit Joined(msg.sender, 50 * 1e6);
+        emit Joined(msg.sender, individualStake);
     }
 
     function startClub() external override onlyNotStarted onlyOwner {
@@ -83,7 +94,7 @@ contract ClubPool is IClubPool {
     }
 
     function vetoSlash(address _runner) external override onlyStarted onlyOwner {
-        require(members[_runner].slashed, "Runner not slashed");
+        require(members[_runner].slashed = true, "Runner not slashed");
 
         members[_runner].slashed = false;
         members[_runner].slashVotes = 0;

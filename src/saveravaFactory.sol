@@ -32,8 +32,8 @@ contract ClubPoolFactory {
      * @param _duration The duration for the ClubPool.
      * @return The address of the newly created ClubPool contract.
      */
-    function createClubPool(address _usdc, uint256 _duration, address) external onlyOwner returns (address) {
-        ClubPool clubPool = new ClubPool(_usdc, _duration, msg.sender);
+    function createClubPool(address _usdc, uint256 _duration, address, uint256 _stakeAmount) external onlyOwner returns (address) {
+        ClubPool clubPool = new ClubPool(_usdc, _duration, msg.sender, _stakeAmount);
         clubPools.push(address(clubPool));
         emit ClubPoolCreated(address(clubPool), msg.sender);
         return address(clubPool);

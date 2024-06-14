@@ -13,6 +13,7 @@ contract ClubPoolTest is Test {
     address alice;
     address bob;
     address charlie;
+    uint256 stakeAmount = 50 * 1e6;
     ClubPoolFactory factory;
 
     function setUp() public {
@@ -22,7 +23,7 @@ contract ClubPoolTest is Test {
         charlie = address(0x3);
 
         usdc = new MockUSDC();
-        clubPool = new ClubPool(address(usdc), 12 weeks, owner);
+        clubPool = new ClubPool(address(usdc), 12 weeks, owner, stakeAmount);
 
         factory = new ClubPoolFactory();
 
@@ -31,18 +32,21 @@ contract ClubPoolTest is Test {
         usdc.mint(charlie, 100 * 1e6);
 
         // Create a ClubPool instance using the factory
-        address clubPoolAddress = factory.createClubPool(address(usdc), 12 weeks, owner);
+        address clubPoolAddress = factory.createClubPool(address(usdc), 12 weeks, owner, stakeAmount);
         clubPool = ClubPool(clubPoolAddress);
     }
 
     function testJoinClub() public {
-        vm.prank(alice);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(alice);
+        vm.startPrank(alice);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
         (uint256 stake, bool slashed, uint256 slashVotes) = clubPool.members(alice);
-        assertEq(stake, 50 * 1e6);
+
+        console.log(stake);
+
+        assertEq(stake, stakeAmount);
         assertFalse(slashed);
         assertEq(slashVotes, 0);
     }
@@ -54,15 +58,15 @@ contract ClubPoolTest is Test {
     }
 
     function testProposeSlash() public {
-        vm.prank(alice);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(alice);
+        vm.startPrank(alice);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
-        vm.prank(bob);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(bob);
+        vm.startPrank(bob);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
         clubPool.startClub();
 
@@ -75,15 +79,15 @@ contract ClubPoolTest is Test {
     }
 
     function testVetoSlash() public {
-        vm.prank(alice);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(alice);
+        vm.startPrank(alice);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
-        vm.prank(bob);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(bob);
+        vm.startPrank(bob);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
         clubPool.startClub();
 
@@ -99,15 +103,17 @@ contract ClubPoolTest is Test {
     }
 
     function testClaimRewards() public {
-        vm.prank(alice);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(alice);
+        vm.startPrank(alice);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
-        vm.prank(bob);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(bob);
+        uint256 afterDepoistBalance = usdc.balanceOf(alice);
+
+        vm.startPrank(bob);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
         clubPool.startClub();
         vm.warp(block.timestamp + 12 weeks);
@@ -118,24 +124,24 @@ contract ClubPoolTest is Test {
         (uint256 stake, bool slashed, uint256 slashVotes) = clubPool.members(alice);
         assertEq(stake, 0);
 
-        assertEq(usdc.balanceOf(alice), 50 * 1e6);
+        assertEq(usdc.balanceOf(alice), afterDepoistBalance + stakeAmount);
     }
 
     function testProposeAndSlash() public {
-        vm.prank(alice);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(alice);
+        vm.startPrank(alice);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
-        vm.prank(bob);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(bob);
+        vm.startPrank(bob);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
-        vm.prank(charlie);
-        usdc.approve(address(clubPool), 50 * 1e6);
-        vm.prank(charlie);
+        vm.startPrank(charlie);
+        usdc.approve(address(clubPool), stakeAmount);
         clubPool.join();
+        vm.stopPrank();
 
         clubPool.startClub();
 
@@ -149,11 +155,11 @@ contract ClubPoolTest is Test {
         assertTrue(slashedBob);
         assertEq(slashVotesBob, 2);
 
-        uint256 share = 50 * 1e6 / 2;
+        uint256 share = stakeAmount / 2;
         (uint256 stakeAlice,,) = clubPool.members(alice);
         (uint256 stakeCharlie,,) = clubPool.members(charlie);
-        assertEq(stakeAlice, 50 * 1e6 + share);
-        assertEq(stakeCharlie, 50 * 1e6 + share);
+        assertEq(stakeAlice, stakeAmount + share);
+        assertEq(stakeCharlie, stakeAmount + share);
     }
 
     function testRecordActivity() public {
