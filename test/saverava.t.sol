@@ -119,6 +119,21 @@ contract ClubPoolTest is Test {
         assertEq(usdc.balanceOf(alice), afterDepoistBalance + stakeAmount);
     }
 
+    function testClaimRewardsFuzz(address _user) alice_and_bob public {
+        uint256 afterDepoistBalance = usdc.balanceOf(_user);
+
+        clubPool.startClub();
+        vm.warp(block.timestamp + 12 weeks);
+
+        vm.prank(_user);
+        clubPool.claim();
+
+        (uint256 stake, bool slashed, uint256 slashVotes) = clubPool.members(_user);
+        assertEq(stake, 0);
+
+        assertEq(usdc.balanceOf(_user), 0);
+    }
+
     function testProposeAndSlash() alice_and_bob public {
 
         vm.startPrank(charlie);
