@@ -19,6 +19,7 @@ contract ClubPool is IClubPool {
     struct Member {
         uint256 stake;
         bool slashed;
+        bool claimed;
         uint256 slashVotes;
     }
 
@@ -59,6 +60,7 @@ contract ClubPool is IClubPool {
         members[msg.sender] = Member({
             stake: individualStake,
             slashed: false,
+            claimed: false,
             slashVotes: 0
         });
         memberList.push(msg.sender);
@@ -104,10 +106,19 @@ contract ClubPool is IClubPool {
 
     function claim() external override onlyStarted {
         require(block.timestamp >= endTime, "Club duration not ended");
-        require(!members[msg.sender].slashed, "You have been slashed");
+        require(members[msg.sender].stake > 0, "Not a member");
+        
+        if (members[msg.sender].slashed == true) {
+            revert("You have been slashed");
+        }
+        
+        if (members[msg.sender].claimed == true) {
+            revert("Already Claimed");
+        }
 
         uint256 amount = members[msg.sender].stake;
         members[msg.sender].stake = 0;
+        members[msg.sender].claimed = true;
 
         require(usdc.transfer(msg.sender, amount), "USDC transfer failed");
 
