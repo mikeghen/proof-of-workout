@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ClubPool} from "./saverava.sol";
+import {ClubPool} from "./ClubPool.sol";
 import {IClubPool} from "./interfaces/IClubPool.sol";
 
 /**

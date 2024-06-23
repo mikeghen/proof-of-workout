@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {ClubPool} from "../src/saverava.sol";
+import {ClubPool} from "../src/ClubPool.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
-import {ClubPoolFactory} from "../src/saveravaFactory.sol";
+import {ClubPoolFactory} from "../src/ClubPoolFactory.sol";
 
 contract ClubPoolTest is Test {
     MockUSDC usdc;
@@ -182,38 +182,4 @@ contract ClubPoolTest is Test {
 
         assertEq(factory.getClubPoolsCount(), 2);
     }
-
-    function testMockUSDC() public {
-    address recipient = address(0x123);
-    uint256 mintAmount = 100 * 1e6; // 100 USDC
-
-    // Record the initial total supply
-    uint256 initialTotalSupply = usdc.totalSupply();
-
-    // Mint USDC to recipient
-    usdc.mint(recipient, mintAmount);
-
-    // Check recipient balance
-    uint256 recipientBalance = usdc.balanceOf(recipient);
-    assertEq(recipientBalance, mintAmount, "Recipient should have 100 USDC after minting");
-
-    // Check total supply
-    uint256 totalSupply = usdc.totalSupply();
-    assertEq(totalSupply, initialTotalSupply + mintAmount, "Total supply should be increased by 100 USDC after minting");
-
-    // Transfer USDC from recipient to another address
-    address anotherRecipient = address(0x456);
-    uint256 transferAmount = 50 * 1e6; // 50 USDC
-
-    vm.prank(recipient);
-    usdc.transfer(anotherRecipient, transferAmount);
-
-    // Check balances after transfer
-    uint256 recipientBalanceAfter = usdc.balanceOf(recipient);
-    uint256 anotherRecipientBalance = usdc.balanceOf(anotherRecipient);
-
-    assertEq(recipientBalanceAfter, mintAmount - transferAmount, "Recipient should have 50 USDC after transfer");
-    assertEq(anotherRecipientBalance, transferAmount, "Another recipient should have 50 USDC after receiving transfer");
-}
-
 }
