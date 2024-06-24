@@ -16,10 +16,10 @@ contract DeployTestnet is Script {
         MockUSDC usdc = new MockUSDC();
         console.log("MockUSDC deployed at:", address(usdc));
 
-        ClubPool clubPool = new ClubPool(address(usdc), 12 weeks, 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, 50 * 1e6);
+        ClubPool clubPool = new ClubPool(address(usdc), 12 weeks, vm.envAddress("DEPLOYER_ADDRESS"), 50 * 1e6);
         console.log("ClubPool deployed at:", address(clubPool));
 
-        usdc.mint(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, 100 * 1e6);
+        usdc.mint(vm.envAddress("RUNNER_ADDRESS"), 100 * 1e6);
         vm.stopBroadcast();
 
         // Runner registers to the club pool
