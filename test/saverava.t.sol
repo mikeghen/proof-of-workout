@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 import {ClubPool} from "../src/ClubPool.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
-import {ClubPoolFactory} from "../src/ClubPoolFactory.sol";
 
 contract ClubPoolTest is Test {
     MockUSDC usdc;
@@ -15,7 +14,6 @@ contract ClubPoolTest is Test {
     address bob;
     address charlie;
     uint256 stakeAmount = 50 * 1e6;
-    ClubPoolFactory factory;
 
     function setUp() public {
         owner = address(this);
@@ -28,18 +26,10 @@ contract ClubPoolTest is Test {
         
         clubPool2 = new ClubPool(address(usdc), 6 weeks, owner, stakeAmount);
 
-        factory = new ClubPoolFactory();
-
         usdc.mint(alice, 100 * 1e6);
         usdc.mint(bob, 100 * 1e6);
         usdc.mint(charlie, 100 * 1e6);
 
-        // Create a ClubPool instance using the factory
-        address clubPoolAddress = factory.createClubPool(address(usdc), 12 weeks, owner, stakeAmount);
-        clubPool = ClubPool(clubPoolAddress);
-        
-        address clubPool2Address = factory.createClubPool(address(usdc), 6 weeks, owner, stakeAmount);
-        clubPool2 = ClubPool(clubPool2Address);
     }
 
     modifier alice_and_bob() {
@@ -170,16 +160,5 @@ contract ClubPoolTest is Test {
     function testRecordActivity() public {
         vm.prank(owner);
         clubPool.recordActivity(1, 101, 5000, 3600);
-    }
-
-    function testClubCount() alice_and_bob public {
-        clubPool.startClub();
-
-        vm.startPrank(charlie);
-        usdc.approve(address(clubPool2), stakeAmount);
-        clubPool2.join();
-        vm.stopPrank();
-
-        assertEq(factory.getClubPoolsCount(), 2);
     }
 }

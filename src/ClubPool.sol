@@ -152,4 +152,34 @@ contract ClubPool is IClubPool {
         // Implementation for recording activity
         emit ActivityRecorded(userId, activityId, distance, time);
     }
+
+    // rules on how a user can be Slashed 
+    // a user can only be slashed if they don't reach there require miles for the week
+    // If user has run the required miles they are save
+    // else they can be slashed
+    // Each run is save as an nft
+    // After each run the nft the nft will have the miles the user ran
+    // Miles will me in the meta data of the nft
+    // The nft contract that will be used is an erc721 enumerable
+    // use tokenOfOwnerByIndex() to check a group of an users nfts
+    // example alice starts a group with Bob and eve
+    // after every run alice, bob, and eve gets an nft with the miles run each of their individual runs
+    // after each week the miles are total for that specic week
+    // eve doesn't reach the mile total of the week so she can be slashed, while Alice and bob can not be slashed because they hit the required miles 
+    // check blocktimes of NFT to make sure they are between the desired time
+    // Change the duration to start and end time
+    // we need a sub time check that checks the past 7 days at a speicific time which checks after the first run was recorded
+    // this check should be done automaticly using gelato network but for testing manual is fine but allow for it to be easy to change if from manual to auto
+    // factory creates the runnft and it allows users check user
+
+    // No do this first update the start and end time
+    // 1. Work on adding nft
+    //  a. create runNft.sol import erc721 enumerable
+    //  b. add a getmiles() function
+    //  c. when mint is called miles run
+    // 2. group leader calls ----> club factory creates ----> runNft & saverava contracts 
+    // permission allow users to mint from groups after runs for factory to saverava // supports interface
+    //  a. group leader is the admin caller
+    // 3. add checking nft metadata
+    // 4. update slashing
 }
