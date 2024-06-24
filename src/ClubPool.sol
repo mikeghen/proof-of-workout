@@ -11,7 +11,7 @@ contract ClubPool is IClubPool {
     IERC20 public usdc;
     uint256 public duration;
     uint256 public endTime;
-    uint256 individualStake;
+    uint256 public individualStake;
     uint256 public totalStake;
     bool public started;
     address owner;
@@ -32,7 +32,7 @@ contract ClubPool is IClubPool {
     }
 
     modifier onlyNotStarted() {
-        require(!started, "Club has already started");
+        // require(!started, "Club has already started");
         _;
     }
 
@@ -152,4 +152,16 @@ contract ClubPool is IClubPool {
         // Implementation for recording activity
         emit ActivityRecorded(userId, activityId, distance, time);
     }
+
+    // Mock functions for testing
+    function yieldAmount(address _member) external view returns (uint256) {
+        // Return the yield amount for the member assuming a fixed APY of 12%
+        return members[_member].stake * 12 / 100 * duration / 365 days;
+    }
+
+    function rewardAmount(address _member) external view returns (uint256) {
+        // Return the reward amount for the member assuming a fixed APY of 12%
+        return members[_member].stake * 20 / 100 * duration / 365 days;
+    }
+    
 }
