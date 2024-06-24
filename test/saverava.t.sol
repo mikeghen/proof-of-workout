@@ -22,10 +22,9 @@ contract ClubPoolTest is Test {
         charlie = address(0x3);
 
         usdc = new MockUSDC();
-        clubPool = new ClubPool(address(usdc), 12 weeks, owner, stakeAmount);
-        
-        clubPool2 = new ClubPool(address(usdc), 6 weeks, owner, stakeAmount);
+        clubPool = new ClubPool(address(usdc), 12 weeks, 100, owner, stakeAmount);
 
+        clubPool2 = new ClubPool(address(usdc), 12 weeks, 100, owner, stakeAmount);
         usdc.mint(alice, 100 * 1e6);
         usdc.mint(bob, 100 * 1e6);
         usdc.mint(charlie, 100 * 1e6);
@@ -63,6 +62,17 @@ contract ClubPoolTest is Test {
         clubPool.startClub();
 
         assertTrue(clubPool.started());
+    }
+
+    function testRecordRun() alice_and_bob public {
+        clubPool.startClub();
+
+        vm.prank(alice);
+        clubPool.recordRun(alice, 10);
+
+        (uint256 miles, uint256 timestamp) = clubPool.getRunData(0);
+        assertEq(miles, 10);
+        assertEq(timestamp, block.timestamp);
     }
 
     function testProposeSlash() alice_and_bob public {
