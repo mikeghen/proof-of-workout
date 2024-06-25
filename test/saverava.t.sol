@@ -8,7 +8,6 @@ import {MockUSDC} from "../src/mocks/MockUSDC.sol";
 contract ClubPoolTest is Test {
     MockUSDC usdc;
     ClubPool clubPool;
-    ClubPool clubPool2;
     address owner;
     address alice;
     address bob;
@@ -25,7 +24,6 @@ contract ClubPoolTest is Test {
 
         usdc = new MockUSDC();
         clubPool = new ClubPool(address(usdc), 12 weeks, defaultDistance, owner, stakeAmount);
-        clubPool2 = new ClubPool(address(usdc), 12 weeks, 10000, owner, stakeAmount);
 
         usdc.mint(alice, 100 * 1e6);
         usdc.mint(bob, 100 * 1e6);
