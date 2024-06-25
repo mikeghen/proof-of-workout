@@ -129,6 +129,11 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         }
     }
 
+    // Public function for testing purposes
+    function checkSlash(address _runner) public onlyOwner {
+        checkForSlash(_runner);
+    }
+
     function vetoSlash(address _runner) external override onlyStarted onlyOwner {
         require(members[_runner].slashed, "Runner not slashed");
 

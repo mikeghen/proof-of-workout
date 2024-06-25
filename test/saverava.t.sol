@@ -75,50 +75,50 @@ contract ClubPoolTest is Test {
     }
 
     function testRecordRunsForWeek() public alice_and_bob {
-    clubPool.startClub();
+        clubPool.startClub();
 
-    // Record the first run for Alice
-    vm.warp(block.timestamp + 1 days); // Warp forward by 1 day
-    vm.prank(alice);
-    clubPool.recordRun(alice, 10);
-    uint256 tokenId1 = clubPool.totalSupply() - 1; // Get the latest token ID
+        // Record the first run for Alice
+        vm.warp(block.timestamp + 1 days); // Warp forward by 1 day
+        vm.prank(alice);
+        clubPool.recordRun(alice, 10);
+        uint256 tokenId1 = clubPool.totalSupply() - 1; // Get the latest token ID
 
-    // Record a run for Bob
-    vm.warp(block.timestamp + 2 days); // Warp forward by 2 more days
-    vm.prank(bob);
-    clubPool.recordRun(bob, 5);
+        // Record a run for Bob
+        vm.warp(block.timestamp + 2 days); // Warp forward by 2 more days
+        vm.prank(bob);
+        clubPool.recordRun(bob, 5);
 
-    // Record the second run for Alice
-    vm.warp(block.timestamp + 3 days); // Warp forward by 3 more days
-    vm.prank(alice);
-    clubPool.recordRun(alice, 15);
-    uint256 tokenId2 = clubPool.totalSupply() - 1; // Get the latest token ID
+        // Record the second run for Alice
+        vm.warp(block.timestamp + 3 days); // Warp forward by 3 more days
+        vm.prank(alice);
+        clubPool.recordRun(alice, 15);
+        uint256 tokenId2 = clubPool.totalSupply() - 1; // Get the latest token ID
 
-    // Record the third run for Alice
-    vm.warp(block.timestamp + 4 days); // Warp forward by 4 more days
-    vm.prank(alice);
-    clubPool.recordRun(alice, 20);
-    uint256 tokenId3 = clubPool.totalSupply() - 1; // Get the latest token ID
+        // Record the third run for Alice
+        vm.warp(block.timestamp + 4 days); // Warp forward by 4 more days
+        vm.prank(alice);
+        clubPool.recordRun(alice, 20);
+        uint256 tokenId3 = clubPool.totalSupply() - 1; // Get the latest token ID
 
-    // Check total miles for Alice
-    uint256 totalMiles = 0;
-    uint256[] memory tokenIds = new uint256[](3);
-    tokenIds[0] = tokenId1;
-    tokenIds[1] = tokenId2;
-    tokenIds[2] = tokenId3;
-    for (uint256 i = 0; i < 3; i++) {
-        (uint256 miles, ) = clubPool.getRunData(tokenIds[i]);
-        totalMiles += miles;
+        // Check total miles for Alice
+        uint256 totalMiles = 0;
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = tokenId1;
+        tokenIds[1] = tokenId2;
+        tokenIds[2] = tokenId3;
+        for (uint256 i = 0; i < 3; i++) {
+            (uint256 miles,) = clubPool.getRunData(tokenIds[i]);
+            totalMiles += miles;
+        }
+
+        // Assert total miles for Alice
+        assertEq(totalMiles, 45);
+
+        // Check ownership of Alice's NFTs
+        for (uint256 i = 0; i < 3; i++) {
+            assertEq(clubPool.ownerOf(tokenIds[i]), alice);
+        }
     }
-
-    // Assert total miles for Alice
-    assertEq(totalMiles, 45);
-
-    // Check ownership of Alice's NFTs
-    for (uint256 i = 0; i < 3; i++) {
-        assertEq(clubPool.ownerOf(tokenIds[i]), alice);
-    }
-}
 
     function testAutoSlash() public alice_and_bob {
         clubPool.startClub();
@@ -133,10 +133,15 @@ contract ClubPoolTest is Test {
 
         // Warp forward by 7 days
         vm.warp(block.timestamp + 7 days);
-        
+
         // Alice records a run of 50 miles (meets requirement)
         vm.prank(alice);
         clubPool.recordRun(alice, 50);
+
+        // Manually trigger a check for slashing
+        vm.prank(owner);
+        clubPool.checkSlash(alice);
+        clubPool.checkSlash(bob);
 
         (, bool slashedAlice,,) = clubPool.members(alice);
         assertFalse(slashedAlice);
@@ -153,6 +158,10 @@ contract ClubPoolTest is Test {
 
         // Warp forward by 7 days
         vm.warp(block.timestamp + 7 days);
+
+        // Manually trigger a check for slashing
+        vm.prank(owner);
+        clubPool.checkSlash(bob);
 
         vm.prank(owner);
         clubPool.vetoSlash(bob);
