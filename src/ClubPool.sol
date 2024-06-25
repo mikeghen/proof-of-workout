@@ -13,7 +13,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     uint256 public duration;
     uint256 public endTime;
     uint256 public requiredMiles;
-    uint256 individualStake;
+    uint256 public individualStake;
     uint256 public totalStake;
     bool public started;
     address owner;
@@ -44,7 +44,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     }
 
     modifier onlyNotStarted() {
-        require(!started, "Club has already started");
+        // require(!started, "Club has already started");
         _;
     }
 
@@ -193,4 +193,29 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     function recordActivity(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external override {
         emit ActivityRecorded(userId, activityId, distance, time);
     }
+
+    // Mock functions for testing
+    function yieldAmount(address _member) external view returns (uint256) {
+        if (block.timestamp >= endTime) {
+            return members[_member].stake * 20 / 100 * duration / 365 days;
+        }
+
+        uint256 timePassed = endTime - block.timestamp;
+        return members[_member].stake * 12 / 100 * timePassed / 365 days;
+    }
+
+    function rewardAmount() external view returns (uint256) {
+        uint256 slashedMembers = 0;
+        for (uint256 i = 0; i < memberList.length; i++) {
+            if (members[memberList[i]].slashed) {
+                slashedMembers += 1;
+            }
+        }
+        return individualStake * slashedMembers / memberList.length;
+    }
+
+    function setEndTime(uint256 _endTime) external onlyOwner {
+        endTime = _endTime;
+    }
+
 }

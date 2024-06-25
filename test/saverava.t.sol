@@ -241,30 +241,64 @@ contract ClubPoolTest is Test {
         clubPool.claim();
     }
 
-    // function testProposeAndSlash() alice_and_bob public {
-    //     vm.startPrank(charlie);
-    //     usdc.approve(address(clubPool), stakeAmount);
-    //     clubPool.join();
-    //     vm.stopPrank();
+    function testYieldAmountAfterEndTime() public alice_and_bob {
+        clubPool.startClub();
+        
+        // Warp to after the end time
+        vm.warp(block.timestamp + 13 weeks);
 
-    //     clubPool.startClub();
+        uint256 expectedYield = (stakeAmount * 20 * 12 weeks) / (100 * 365 days);
+        uint256 actualYield = clubPool.yieldAmount(alice);
+        
+        assertEq(actualYield, expectedYield, "Incorrect yield amount after end time");
+        
+        // If the assertion fails, print the values for debugging
+        if (actualYield != expectedYield) {
+            console.log("Expected yield:", expectedYield);
+            console.log("Actual yield:", actualYield);
+        }
+    }
 
-    //     vm.prank(alice);
-    //     clubPool.proposeSlash(bob);
+    function testRewardAmountWithMultipleSlashedMembers() public {
+        // Add Alice, Bob, and Charlie to the club
+        vm.startPrank(alice);
+        usdc.approve(address(clubPool), stakeAmount);
+        clubPool.join();
+        vm.stopPrank();
 
-    //     vm.prank(charlie);
-    //     clubPool.proposeSlash(bob);
+        vm.startPrank(bob);
+        usdc.approve(address(clubPool), stakeAmount);
+        clubPool.join();
+        vm.stopPrank();
 
-    //     (, bool slashedBob,, uint256 slashVotesBob) = clubPool.members(bob);
-    //     assertTrue(slashedBob);
-    //     assertEq(slashVotesBob, 2);
+        vm.startPrank(charlie);
+        usdc.approve(address(clubPool), stakeAmount);
+        clubPool.join();
+        vm.stopPrank();
 
-    //     uint256 share = stakeAmount / 2;
-    //     (uint256 stakeAlice,,,) = clubPool.members(alice);
-    //     (uint256 stakeCharlie,,,) = clubPool.members(charlie);
-    //     assertEq(stakeAlice, stakeAmount + share);
-    //     assertEq(stakeCharlie, stakeAmount + share);
-    // }
+        clubPool.startClub();
+
+        // Manually slash Bob and Charlie
+        vm.prank(bob);
+        clubPool.recordRun(bob, 4);
+        vm.prank(charlie);
+        clubPool.recordRun(charlie, 4);
+        vm.warp(block.timestamp + 7 days);
+        vm.prank(owner);
+        clubPool.checkSlash(bob);
+        clubPool.checkSlash(charlie);
+
+        uint256 expectedReward = (stakeAmount * 2) / 3; // Two-thirds of the stake amount as there are three members
+        uint256 actualReward = clubPool.rewardAmount();
+        
+        assertEq(actualReward, expectedReward, "Incorrect reward amount with multiple slashed members");
+        
+        // If the assertion fails, print the values for debugging
+        if (actualReward != expectedReward) {
+            console.log("Expected reward:", expectedReward);
+            console.log("Actual reward:", actualReward);
+        }
+    }
 
     function testRecordActivity() public {
         vm.prank(owner);
