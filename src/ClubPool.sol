@@ -12,7 +12,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     IERC20 public usdc;
     uint256 public duration;
     uint256 public endTime;
-    uint256 public requiredMiles;
+    uint256 public requiredDistance;
     uint256 public individualStake;
     uint256 public totalStake;
     bool public started;
@@ -26,7 +26,8 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     }
 
     struct RunData {
-        uint256 miles;
+        uint256 distance;
+        uint256 time; 
         uint256 timestamp;
     }
 
@@ -35,8 +36,9 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     mapping(address => Member) public members;
     mapping(uint256 => RunData) private _runData;
     address[] public memberList;
+    mapping(uint256 => address) public userIdToAccount;
 
-    event RunRecorded(address indexed runner, uint256 indexed tokenId, uint256 miles, uint256 timestamp);
+    event RunRecorded(address indexed runner, uint256 indexed tokenId, uint256 distance, uint256 time);
 
     modifier onlyStarted() {
         require(started, "Club has not started yet");
@@ -53,13 +55,13 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         _;
     }
 
-    constructor(address _usdc, uint256 _duration, uint256 _requiredMiles, address _owner, uint256 _stakeAmount)
+    constructor(address _usdc, uint256 _duration, uint256 _requiredDistance, address _owner, uint256 _stakeAmount)
         ERC721("RunNFT", "RUNNFT")
     {
         usdc = IERC20(_usdc);
         duration = _duration;
         owner = _owner;
-        requiredMiles = _requiredMiles;
+        requiredDistance = _requiredDistance;
         individualStake = _stakeAmount;
         owner = _owner;
     }
@@ -68,10 +70,10 @@ contract ClubPool is IClubPool, ERC721Enumerable {
      * @notice Allows a user to join the club by staking a specific amount of USDC.
      * @dev Transfers the specified amount of USDC from the caller to the contract.
      */
-    function join() external payable override onlyNotStarted {
+    function join(uint256 userId) external payable override onlyNotStarted {
         require(members[msg.sender].stake == 0, "Already a member");
         require(usdc.transferFrom(msg.sender, address(this), individualStake), "USDC transfer failed");
-
+        userIdToAccount[userId] = msg.sender;
         members[msg.sender] = Member({stake: individualStake, slashed: false, claimed: false, slashVotes: 0});
         memberList.push(msg.sender);
         totalStake += individualStake;
@@ -84,37 +86,38 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         endTime = block.timestamp + duration;
     }
 
-    function recordRun(address runner, uint256 miles) external onlyStarted {
+    function recordRun(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external onlyStarted {
+        address runner = userIdToAccount[userId];
         require(members[runner].stake > 0, "Not a member");
 
         uint256 tokenId = _nextTokenId++;
         _mint(runner, tokenId);
 
-        _runData[tokenId] = RunData({miles: miles, timestamp: block.timestamp});
+        _runData[tokenId] = RunData({distance: distance, time: time, timestamp: block.timestamp});
 
-        emit RunRecorded(runner, tokenId, miles, block.timestamp);
+        emit RunRecorded(runner, tokenId, distance, time);
     }
 
-    function getRunData(uint256 tokenId) external view returns (uint256 miles, uint256 timestamp) {
+    function getRunData(uint256 tokenId) external view returns (uint256 distance, uint256 timestamp) {
         RunData memory run = _runData[tokenId];
-        return (run.miles, run.timestamp);
+        return (run.distance, run.timestamp);
     }
 
     function checkForSlash(address _runner) internal {
-        // Check if the runner has run the required miles in the past 7 days
-        uint256 totalMiles = 0;
+        // Check if the runner has run the required distance in the past 7 days
+        uint256 totalDistance = 0;
         uint256 balance = balanceOf(_runner);
-        uint256 checkStartTime = block.timestamp - 7 days;
+        uint256 checkStartTime = block.timestamp - 7 days; // TODO: Make this a parameter not hard code
 
         for (uint256 i = 0; i < balance; i++) {
             uint256 tokenId = tokenOfOwnerByIndex(_runner, i);
             RunData memory runData = _runData[tokenId];
             if (runData.timestamp >= checkStartTime) {
-                totalMiles += runData.miles;
+                totalDistance += runData.distance;
             }
         }
 
-        if (totalMiles < requiredMiles && !members[_runner].slashed) {
+        if (totalDistance < requiredDistance && !members[_runner].slashed) {
             members[_runner].slashed = true;
             totalStake -= members[_runner].stake;
 
@@ -177,17 +180,6 @@ contract ClubPool is IClubPool, ERC721Enumerable {
 
     function slashVotes(address _runner) external view override returns (uint256) {
         return members[_runner].slashVotes;
-    }
-
-    /**
-     * @notice Records an activity for a member.
-     * @param userId The ID of the user.
-     * @param activityId The ID of the activity.
-     * @param distance The distance covered in the activity.
-     * @param time The time taken for the activity.
-     */
-    function recordActivity(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external override {
-        emit ActivityRecorded(userId, activityId, distance, time);
     }
 
     // Mock functions for testing

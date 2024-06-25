@@ -14,6 +14,8 @@ contract ClubPoolTest is Test {
     address bob;
     address charlie;
     uint256 stakeAmount = 50 * 1e6;
+    uint256 defaultDistance = 5000;
+    uint256 defaultTime = 30 minutes;
 
     function setUp() public {
         owner = address(this);
@@ -22,8 +24,8 @@ contract ClubPoolTest is Test {
         charlie = address(0x3);
 
         usdc = new MockUSDC();
-        clubPool = new ClubPool(address(usdc), 12 weeks, 100, owner, stakeAmount);
-        clubPool2 = new ClubPool(address(usdc), 12 weeks, 100, owner, stakeAmount);
+        clubPool = new ClubPool(address(usdc), 12 weeks, defaultDistance, owner, stakeAmount);
+        clubPool2 = new ClubPool(address(usdc), 12 weeks, 10000, owner, stakeAmount);
 
         usdc.mint(alice, 100 * 1e6);
         usdc.mint(bob, 100 * 1e6);
@@ -33,12 +35,12 @@ contract ClubPoolTest is Test {
     modifier alice_and_bob() {
         vm.startPrank(alice);
         usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
+        clubPool.join(1);
         vm.stopPrank();
 
         vm.startPrank(bob);
         usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
+        clubPool.join(2);
         vm.stopPrank();
         _;
     }
@@ -46,7 +48,7 @@ contract ClubPoolTest is Test {
     function testJoinClub() public {
         vm.startPrank(alice);
         usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
+        clubPool.join(1);
         vm.stopPrank();
 
         (uint256 stake, bool slashed, bool claimed, uint256 slashVotes) = clubPool.members(alice);
@@ -67,12 +69,13 @@ contract ClubPoolTest is Test {
         clubPool.startClub();
 
         vm.prank(alice);
-        clubPool.recordRun(alice, 10);
+        clubPool.recordRun(1, 1, 10, defaultDistance);  // Passing both distance and time
 
-        (uint256 miles, uint256 timestamp) = clubPool.getRunData(0);
-        assertEq(miles, 10);
+        (uint256 distance, uint256 timestamp) = clubPool.getRunData(0);
+        assertEq(distance, 10);
         assertEq(timestamp, block.timestamp);
     }
+
 
     function testRecordRunsForWeek() public alice_and_bob {
         clubPool.startClub();
@@ -80,39 +83,39 @@ contract ClubPoolTest is Test {
         // Record the first run for Alice
         vm.warp(block.timestamp + 1 days); // Warp forward by 1 day
         vm.prank(alice);
-        clubPool.recordRun(alice, 10);
+        clubPool.recordRun(1, 1, defaultDistance, defaultTime);
         uint256 tokenId1 = clubPool.totalSupply() - 1; // Get the latest token ID
 
         // Record a run for Bob
         vm.warp(block.timestamp + 2 days); // Warp forward by 2 more days
         vm.prank(bob);
-        clubPool.recordRun(bob, 5);
+        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
 
         // Record the second run for Alice
         vm.warp(block.timestamp + 3 days); // Warp forward by 3 more days
         vm.prank(alice);
-        clubPool.recordRun(alice, 15);
+        clubPool.recordRun(1, 1, defaultDistance, defaultTime);
         uint256 tokenId2 = clubPool.totalSupply() - 1; // Get the latest token ID
 
         // Record the third run for Alice
         vm.warp(block.timestamp + 4 days); // Warp forward by 4 more days
         vm.prank(alice);
-        clubPool.recordRun(alice, 20);
+        clubPool.recordRun(1, 1, defaultDistance, defaultTime);
         uint256 tokenId3 = clubPool.totalSupply() - 1; // Get the latest token ID
 
-        // Check total miles for Alice
-        uint256 totalMiles = 0;
+        // Check total distance for Alice
+        uint256 totalDistance = 0;
         uint256[] memory tokenIds = new uint256[](3);
         tokenIds[0] = tokenId1;
         tokenIds[1] = tokenId2;
         tokenIds[2] = tokenId3;
         for (uint256 i = 0; i < 3; i++) {
-            (uint256 miles,) = clubPool.getRunData(tokenIds[i]);
-            totalMiles += miles;
+            (uint256 distance,) = clubPool.getRunData(tokenIds[i]);
+            totalDistance += distance;
         }
 
-        // Assert total miles for Alice
-        assertEq(totalMiles, 45);
+        // Assert total distance for Alice
+        assertEq(totalDistance, defaultDistance * 3);
 
         // Check ownership of Alice's NFTs
         for (uint256 i = 0; i < 3; i++) {
@@ -123,20 +126,20 @@ contract ClubPoolTest is Test {
     function testAutoSlash() public alice_and_bob {
         clubPool.startClub();
 
-        // Alice records a run of 50 miles (meets requirement)
+        // Alice records a run of 50 distance (meets requirement)
         vm.prank(alice);
-        clubPool.recordRun(alice, 50);
+        clubPool.recordRun(1, 1, defaultDistance, defaultTime);
 
-        // Bob records a run of 4 miles
+        // Bob records a run of 4 distance
         vm.prank(bob);
-        clubPool.recordRun(bob, 4);
+        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
 
         // Warp forward by 7 days
         vm.warp(block.timestamp + 7 days);
 
-        // Alice records a run of 50 miles (meets requirement)
+        // Alice records a run of 50 distance (meets requirement)
         vm.prank(alice);
-        clubPool.recordRun(alice, 50);
+        clubPool.recordRun(1, 1, defaultDistance, defaultTime);
 
         // Manually trigger a check for slashing
         vm.prank(owner);
@@ -154,7 +157,7 @@ contract ClubPoolTest is Test {
         clubPool.startClub();
 
         vm.prank(bob);
-        clubPool.recordRun(bob, 4);
+        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
 
         // Warp forward by 7 days
         vm.warp(block.timestamp + 7 days);
@@ -232,26 +235,26 @@ contract ClubPoolTest is Test {
         // Add Alice, Bob, and Charlie to the club
         vm.startPrank(alice);
         usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
+        clubPool.join(1);
         vm.stopPrank();
 
         vm.startPrank(bob);
         usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
+        clubPool.join(2);
         vm.stopPrank();
 
         vm.startPrank(charlie);
         usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
+        clubPool.join(3);
         vm.stopPrank();
 
         clubPool.startClub();
 
         // Manually slash Bob and Charlie
         vm.prank(bob);
-        clubPool.recordRun(bob, 4);
+        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
         vm.prank(charlie);
-        clubPool.recordRun(charlie, 4);
+        clubPool.recordRun(3, 3, defaultDistance, defaultTime);
         vm.warp(block.timestamp + 7 days);
         vm.prank(owner);
         clubPool.checkSlash(bob);
@@ -267,10 +270,5 @@ contract ClubPoolTest is Test {
             console.log("Expected reward:", expectedReward);
             console.log("Actual reward:", actualReward);
         }
-    }
-
-    function testRecordActivity() public {
-        vm.prank(owner);
-        clubPool.recordActivity(1, 101, 5000, 3600);
     }
 }
