@@ -155,13 +155,26 @@ contract ClubPool is IClubPool {
 
     // Mock functions for testing
     function yieldAmount(address _member) external view returns (uint256) {
-        // Return the yield amount for the member assuming a fixed APY of 12%
-        return members[_member].stake * 12 / 100 * duration / 365 days;
+        if (block.timestamp >= endTime) {
+            return members[_member].stake * 20 / 100 * duration / 365 days;
+        }
+
+        uint256 timePassed = endTime - block.timestamp;
+        return members[_member].stake * 12 / 100 * timePassed / 365 days;
     }
 
-    function rewardAmount(address _member) external view returns (uint256) {
-        // Return the reward amount for the member assuming a fixed APY of 12%
-        return members[_member].stake * 20 / 100 * duration / 365 days;
+    function rewardAmount() external view returns (uint256) {
+        uint256 slashedMembers = 0;
+        for (uint256 i = 0; i < memberList.length; i++) {
+            if (members[memberList[i]].slashed) {
+                slashedMembers += 1;
+            }
+        }
+        return individualStake * slashedMembers / memberList.length;
     }
-    
+
+    function setEndTime(uint256 _endTime) external onlyOwner {
+        endTime = _endTime;
+    }
+
 }
