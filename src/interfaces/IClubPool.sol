@@ -10,7 +10,6 @@ interface IClubPool {
 
     function join() external payable;
     function startClub() external;
-    function proposeSlash(address _runner) external;
     function vetoSlash(address _runner) external;
     function claim() external;
     function totalStakes() external view returns (uint256);

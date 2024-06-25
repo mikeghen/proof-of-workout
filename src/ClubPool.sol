@@ -38,8 +38,6 @@ contract ClubPool is IClubPool, ERC721Enumerable {
 
     event RunRecorded(address indexed runner, uint256 indexed tokenId, uint256 miles, uint256 timestamp);
 
-    
-
     modifier onlyStarted() {
         require(started, "Club has not started yet");
         _;
@@ -55,13 +53,9 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         _;
     }
 
-    constructor(
-        address _usdc,
-        uint256 _duration,
-        uint256 _requiredMiles,
-        address _owner,
-        uint256 _stakeAmount
-    ) ERC721("RunNFT", "RUNNFT") {
+    constructor(address _usdc, uint256 _duration, uint256 _requiredMiles, address _owner, uint256 _stakeAmount)
+        ERC721("RunNFT", "RUNNFT")
+    {
         usdc = IERC20(_usdc);
         duration = _duration;
         owner = _owner;
@@ -69,7 +63,6 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         individualStake = _stakeAmount;
         owner = _owner;
     }
-
 
     /**
      * @notice Allows a user to join the club by staking a specific amount of USDC.
@@ -79,12 +72,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         require(members[msg.sender].stake == 0, "Already a member");
         require(usdc.transferFrom(msg.sender, address(this), individualStake), "USDC transfer failed");
 
-        members[msg.sender] = Member({
-            stake: individualStake,
-            slashed: false,
-            claimed: false,
-            slashVotes: 0
-        });
+        members[msg.sender] = Member({stake: individualStake, slashed: false, claimed: false, slashVotes: 0});
         memberList.push(msg.sender);
         totalStake += individualStake;
 
@@ -102,10 +90,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         uint256 tokenId = _nextTokenId++;
         _mint(runner, tokenId);
 
-        _runData[tokenId] = RunData({
-            miles: miles,
-            timestamp: block.timestamp
-        });
+        _runData[tokenId] = RunData({miles: miles, timestamp: block.timestamp});
 
         emit RunRecorded(runner, tokenId, miles, block.timestamp);
     }
@@ -114,14 +99,22 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         RunData memory run = _runData[tokenId];
         return (run.miles, run.timestamp);
     }
-    
-    function proposeSlash(address _runner) external override onlyStarted {
-        require(members[msg.sender].stake > 0, "Not a member");
-        require(!members[_runner].slashed, "Runner already slashed");
 
-        members[_runner].slashVotes += 1;
+    function checkForSlash(address _runner) internal {
+        // Check if the runner has run the required miles in the past 7 days
+        uint256 totalMiles = 0;
+        uint256 balance = balanceOf(_runner);
+        uint256 checkStartTime = block.timestamp - 7 days;
 
-        if (members[_runner].slashVotes >= 2) {
+        for (uint256 i = 0; i < balance; i++) {
+            uint256 tokenId = tokenOfOwnerByIndex(_runner, i);
+            RunData memory runData = _runData[tokenId];
+            if (runData.timestamp >= checkStartTime) {
+                totalMiles += runData.miles;
+            }
+        }
+
+        if (totalMiles < requiredMiles && !members[_runner].slashed) {
             members[_runner].slashed = true;
             totalStake -= members[_runner].stake;
 
@@ -137,10 +130,9 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     }
 
     function vetoSlash(address _runner) external override onlyStarted onlyOwner {
-        require(members[_runner].slashed = true, "Runner not slashed");
+        require(members[_runner].slashed, "Runner not slashed");
 
         members[_runner].slashed = false;
-        members[_runner].slashVotes = 0;
 
         emit Vetoed(_runner);
     }
@@ -148,11 +140,11 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     function claim() external override onlyStarted {
         require(block.timestamp >= endTime, "Club duration not ended");
         require(members[msg.sender].stake > 0, "Not a member");
-        
+
         if (members[msg.sender].slashed == true) {
             revert("You have been slashed");
         }
-        
+
         if (members[msg.sender].claimed == true) {
             revert("Already Claimed");
         }
@@ -190,37 +182,6 @@ contract ClubPool is IClubPool, ERC721Enumerable {
      * @param time The time taken for the activity.
      */
     function recordActivity(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external override {
-        // Implementation for recording activity
         emit ActivityRecorded(userId, activityId, distance, time);
     }
-
-    // rules on how a user can be Slashed 
-    // a user can only be slashed if they don't reach there require miles for the week
-    // If user has run the required miles they are save
-    // else they can be slashed
-    // Each run is save as an nft
-    // After each run the nft the nft will have the miles the user ran
-    // Miles will me in the meta data of the nft
-    // The nft contract that will be used is an erc721 enumerable
-    // use tokenOfOwnerByIndex() to check a group of an users nfts
-    // example alice starts a group with Bob and eve
-    // after every run alice, bob, and eve gets an nft with the miles run each of their individual runs
-    // after each week the miles are total for that specic week
-    // eve doesn't reach the mile total of the week so she can be slashed, while Alice and bob can not be slashed because they hit the required miles 
-    // check blocktimes of NFT to make sure they are between the desired time
-    // Change the duration to start and end time
-    // we need a sub time check that checks the past 7 days at a speicific time which checks after the first run was recorded
-    // this check should be done automaticly using gelato network but for testing manual is fine but allow for it to be easy to change if from manual to auto
-    // factory creates the runnft and it allows users check user
-
-    // No do this first update the start and end time
-    // 1. Work on adding nft
-    //  a. create runNft.sol import erc721 enumerable
-    //  b. add a getmiles() function
-    //  c. when mint is called miles run
-    // 2. group leader calls ----> club factory creates ----> runNft & saverava contracts 
-    // permission allow users to mint from groups after runs for factory to saverava // supports interface
-    //  a. group leader is the admin caller
-    // 3. add checking nft metadata
-    // 4. update slashing
 }
