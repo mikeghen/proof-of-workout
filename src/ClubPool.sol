@@ -100,7 +100,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         return (run.miles, run.timestamp);
     }
 
-    function checkForSlash(address _runner) internal {
+    function Slash(address _runner) internal {
         // Check if the runner has run the required miles in the past 7 days
         uint256 totalMiles = 0;
         uint256 balance = balanceOf(_runner);
@@ -131,7 +131,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
 
     // Public function for testing purposes
     function checkSlash(address _runner) public onlyOwner {
-        checkForSlash(_runner);
+        Slash(_runner);
     }
 
     function vetoSlash(address _runner) external override onlyStarted onlyOwner {
@@ -178,6 +178,10 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     function slashVotes(address _runner) external view override returns (uint256) {
         return members[_runner].slashVotes;
     }
+
+    function getMemberCount() public view returns (uint256) {
+    return memberList.length;
+}
 
     /**
      * @notice Records an activity for a member.
