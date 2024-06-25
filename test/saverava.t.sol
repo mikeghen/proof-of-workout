@@ -173,6 +173,37 @@ contract ClubPoolTest is Test {
         assertFalse(slashed);
     }
 
+    function testStakeAfterSlash() public alice_and_bob {
+        clubPool.startClub();
+
+        // Alice records a run of 50 miles (meets requirement)
+        vm.prank(alice);
+        clubPool.recordRun(1, 1, defaultDistance, defaultTime);
+
+        // Bob records a run of 4 miles
+        vm.prank(bob);
+        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
+
+        // Warp forward by 7 days
+        vm.warp(block.timestamp + 7 days);
+        
+        // Manually trigger a check for slashing
+        vm.prank(owner);
+        clubPool.checkSlash(bob);
+
+        // Check that Bob is slashed
+        (, bool slashedBob,,) = clubPool.members(bob);
+        assertTrue(slashedBob);
+
+        // Calculate expected stake increase for Alice
+        uint256 totalMembers = clubPool.getMemberCount();
+        uint256 expectedStakeIncrease = stakeAmount / (totalMembers - 1);
+
+        // Check that Alice's stake increased
+        (uint256 stake,,,) = clubPool.members(alice);
+        assertEq(stake, stakeAmount + expectedStakeIncrease);
+    }
+
     function testClaimRewards() public alice_and_bob {
         uint256 initialBalance = usdc.balanceOf(alice);
 

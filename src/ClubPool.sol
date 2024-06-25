@@ -28,6 +28,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     struct RunData {
         uint256 distance;
         uint256 time; 
+        uint256 activityId;
         uint256 timestamp;
     }
 
@@ -93,7 +94,12 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         uint256 tokenId = _nextTokenId++;
         _mint(runner, tokenId);
 
-        _runData[tokenId] = RunData({distance: distance, time: time, timestamp: block.timestamp});
+        _runData[tokenId] = RunData({
+            activityId: activityId, 
+            distance: distance, 
+            time: time, 
+            timestamp: block.timestamp
+        });
 
         emit RunRecorded(runner, tokenId, distance, time);
     }
@@ -103,8 +109,8 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         return (run.distance, run.timestamp);
     }
 
-    function checkForSlash(address _runner) internal {
-        // Check if the runner has run the required distance in the past 7 days
+    function slash(address _runner) internal {
+        // Check if the runner has run the required miles in the past 7 days
         uint256 totalDistance = 0;
         uint256 balance = balanceOf(_runner);
         uint256 checkStartTime = block.timestamp - 7 days; // TODO: Make this a parameter not hard code
@@ -134,7 +140,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
 
     // Public function for testing purposes
     function checkSlash(address _runner) public onlyOwner {
-        checkForSlash(_runner);
+        slash(_runner);
     }
 
     function vetoSlash(address _runner) external override onlyStarted onlyOwner {
@@ -180,6 +186,10 @@ contract ClubPool is IClubPool, ERC721Enumerable {
 
     function slashVotes(address _runner) external view override returns (uint256) {
         return members[_runner].slashVotes;
+    }
+
+    function getMemberCount() public view returns (uint256) {
+        return memberList.length;
     }
 
     // Mock functions for testing
