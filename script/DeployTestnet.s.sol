@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
-import "../src/ClubPoolFactory.sol";
+import "../src/ClubPool.sol";
 import "../src/Mocks/MockUSDC.sol";
 
 contract DeployTestnet is Script {
@@ -16,7 +16,7 @@ contract DeployTestnet is Script {
         MockUSDC usdc = new MockUSDC();
         console.log("MockUSDC deployed at:", address(usdc));
 
-        ClubPool clubPool = new ClubPool(address(usdc), 12 weeks, vm.envAddress("DEPLOYER_ADDRESS"), 50 * 1e6);
+        ClubPool clubPool = new ClubPool(address(usdc), 30 days, 5, vm.envAddress("DEPLOYER_ADDRESS"), 50 * 1e6);
         console.log("ClubPool deployed at:", address(clubPool));
 
         usdc.mint(vm.envAddress("RUNNER_ADDRESS"), 100 * 1e6);
