@@ -3,14 +3,16 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IClubPool} from "./interfaces/IClubPool.sol";
+import {ERC721, ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 /// @title IClubPool Interface
 /// @notice Interface for the ClubPool contract
 
-contract ClubPool is IClubPool {
+contract ClubPool is IClubPool, ERC721Enumerable {
     IERC20 public usdc;
     uint256 public duration;
     uint256 public endTime;
+    uint256 public requiredMiles;
     uint256 public individualStake;
     uint256 public totalStake;
     bool public started;
@@ -23,8 +25,18 @@ contract ClubPool is IClubPool {
         uint256 slashVotes;
     }
 
+    struct RunData {
+        uint256 miles;
+        uint256 timestamp;
+    }
+
+    uint256 private _nextTokenId;
+
     mapping(address => Member) public members;
+    mapping(uint256 => RunData) private _runData;
     address[] public memberList;
+
+    event RunRecorded(address indexed runner, uint256 indexed tokenId, uint256 miles, uint256 timestamp);
 
     modifier onlyStarted() {
         require(started, "Club has not started yet");
@@ -41,13 +53,16 @@ contract ClubPool is IClubPool {
         _;
     }
 
-    constructor(address _usdc, uint256 _duration, address _owner, uint256 _stakeAmount) {
+    constructor(address _usdc, uint256 _duration, uint256 _requiredMiles, address _owner, uint256 _stakeAmount)
+        ERC721("RunNFT", "RUNNFT")
+    {
         usdc = IERC20(_usdc);
         duration = _duration;
         owner = _owner;
+        requiredMiles = _requiredMiles;
         individualStake = _stakeAmount;
+        owner = _owner;
     }
-
 
     /**
      * @notice Allows a user to join the club by staking a specific amount of USDC.
@@ -57,12 +72,7 @@ contract ClubPool is IClubPool {
         require(members[msg.sender].stake == 0, "Already a member");
         require(usdc.transferFrom(msg.sender, address(this), individualStake), "USDC transfer failed");
 
-        members[msg.sender] = Member({
-            stake: individualStake,
-            slashed: false,
-            claimed: false,
-            slashVotes: 0
-        });
+        members[msg.sender] = Member({stake: individualStake, slashed: false, claimed: false, slashVotes: 0});
         memberList.push(msg.sender);
         totalStake += individualStake;
 
@@ -74,13 +84,37 @@ contract ClubPool is IClubPool {
         endTime = block.timestamp + duration;
     }
 
-    function proposeSlash(address _runner) external override onlyStarted {
-        require(members[msg.sender].stake > 0, "Not a member");
-        require(!members[_runner].slashed, "Runner already slashed");
+    function recordRun(address runner, uint256 miles) external onlyStarted {
+        require(members[runner].stake > 0, "Not a member");
 
-        members[_runner].slashVotes += 1;
+        uint256 tokenId = _nextTokenId++;
+        _mint(runner, tokenId);
 
-        if (members[_runner].slashVotes >= 2) {
+        _runData[tokenId] = RunData({miles: miles, timestamp: block.timestamp});
+
+        emit RunRecorded(runner, tokenId, miles, block.timestamp);
+    }
+
+    function getRunData(uint256 tokenId) external view returns (uint256 miles, uint256 timestamp) {
+        RunData memory run = _runData[tokenId];
+        return (run.miles, run.timestamp);
+    }
+
+    function checkForSlash(address _runner) internal {
+        // Check if the runner has run the required miles in the past 7 days
+        uint256 totalMiles = 0;
+        uint256 balance = balanceOf(_runner);
+        uint256 checkStartTime = block.timestamp - 7 days;
+
+        for (uint256 i = 0; i < balance; i++) {
+            uint256 tokenId = tokenOfOwnerByIndex(_runner, i);
+            RunData memory runData = _runData[tokenId];
+            if (runData.timestamp >= checkStartTime) {
+                totalMiles += runData.miles;
+            }
+        }
+
+        if (totalMiles < requiredMiles && !members[_runner].slashed) {
             members[_runner].slashed = true;
             totalStake -= members[_runner].stake;
 
@@ -95,11 +129,15 @@ contract ClubPool is IClubPool {
         }
     }
 
+    // Public function for testing purposes
+    function checkSlash(address _runner) public onlyOwner {
+        checkForSlash(_runner);
+    }
+
     function vetoSlash(address _runner) external override onlyStarted onlyOwner {
-        require(members[_runner].slashed = true, "Runner not slashed");
+        require(members[_runner].slashed, "Runner not slashed");
 
         members[_runner].slashed = false;
-        members[_runner].slashVotes = 0;
 
         emit Vetoed(_runner);
     }
@@ -107,11 +145,11 @@ contract ClubPool is IClubPool {
     function claim() external override onlyStarted {
         require(block.timestamp >= endTime, "Club duration not ended");
         require(members[msg.sender].stake > 0, "Not a member");
-        
+
         if (members[msg.sender].slashed == true) {
             revert("You have been slashed");
         }
-        
+
         if (members[msg.sender].claimed == true) {
             revert("Already Claimed");
         }
@@ -149,7 +187,6 @@ contract ClubPool is IClubPool {
      * @param time The time taken for the activity.
      */
     function recordActivity(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external override {
-        // Implementation for recording activity
         emit ActivityRecorded(userId, activityId, distance, time);
     }
 
