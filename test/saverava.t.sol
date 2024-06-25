@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 import {ClubPool} from "../src/ClubPool.sol";
 import {MockUSDC} from "../src/mocks/MockUSDC.sol";
-import {ClubPoolFactory} from "../src/ClubPoolFactory.sol";
 
 contract ClubPoolTest is Test {
     MockUSDC usdc;
@@ -15,7 +14,6 @@ contract ClubPoolTest is Test {
     address bob;
     address charlie;
     uint256 stakeAmount = 50 * 1e6;
-    ClubPoolFactory factory;
 
     function setUp() public {
         owner = address(this);
@@ -24,22 +22,12 @@ contract ClubPoolTest is Test {
         charlie = address(0x3);
 
         usdc = new MockUSDC();
-        clubPool = new ClubPool(address(usdc), 12 weeks, owner, stakeAmount);
-        
-        clubPool2 = new ClubPool(address(usdc), 6 weeks, owner, stakeAmount);
-
-        factory = new ClubPoolFactory();
+        clubPool = new ClubPool(address(usdc), 12 weeks, 100, owner, stakeAmount);
+        clubPool2 = new ClubPool(address(usdc), 12 weeks, 100, owner, stakeAmount);
 
         usdc.mint(alice, 100 * 1e6);
         usdc.mint(bob, 100 * 1e6);
         usdc.mint(charlie, 100 * 1e6);
-
-        // Create a ClubPool instance using the factory
-        address clubPoolAddress = factory.createClubPool(address(usdc), 12 weeks, owner, stakeAmount);
-        clubPool = ClubPool(clubPoolAddress);
-        
-        address clubPool2Address = factory.createClubPool(address(usdc), 6 weeks, owner, stakeAmount);
-        clubPool2 = ClubPool(clubPool2Address);
     }
 
     modifier alice_and_bob() {
@@ -75,34 +63,114 @@ contract ClubPoolTest is Test {
         assertTrue(clubPool.started());
     }
 
-    function testProposeSlash() alice_and_bob public {
-
+    function testRecordRun() public alice_and_bob {
         clubPool.startClub();
 
         vm.prank(alice);
-        clubPool.proposeSlash(bob);
+        clubPool.recordRun(alice, 10);
 
-        (, bool slashed, , uint256 slashVotes) = clubPool.members(bob);
-        assertEq(slashVotes, 1);
-        assertFalse(slashed);
+        (uint256 miles, uint256 timestamp) = clubPool.getRunData(0);
+        assertEq(miles, 10);
+        assertEq(timestamp, block.timestamp);
     }
 
-    function testVetoSlash() alice_and_bob public {
-
+    function testRecordRunsForWeek() public alice_and_bob {
         clubPool.startClub();
 
+        // Record the first run for Alice
+        vm.warp(block.timestamp + 1 days); // Warp forward by 1 day
         vm.prank(alice);
-        clubPool.proposeSlash(bob);
+        clubPool.recordRun(alice, 10);
+        uint256 tokenId1 = clubPool.totalSupply() - 1; // Get the latest token ID
+
+        // Record a run for Bob
+        vm.warp(block.timestamp + 2 days); // Warp forward by 2 more days
+        vm.prank(bob);
+        clubPool.recordRun(bob, 5);
+
+        // Record the second run for Alice
+        vm.warp(block.timestamp + 3 days); // Warp forward by 3 more days
+        vm.prank(alice);
+        clubPool.recordRun(alice, 15);
+        uint256 tokenId2 = clubPool.totalSupply() - 1; // Get the latest token ID
+
+        // Record the third run for Alice
+        vm.warp(block.timestamp + 4 days); // Warp forward by 4 more days
+        vm.prank(alice);
+        clubPool.recordRun(alice, 20);
+        uint256 tokenId3 = clubPool.totalSupply() - 1; // Get the latest token ID
+
+        // Check total miles for Alice
+        uint256 totalMiles = 0;
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = tokenId1;
+        tokenIds[1] = tokenId2;
+        tokenIds[2] = tokenId3;
+        for (uint256 i = 0; i < 3; i++) {
+            (uint256 miles,) = clubPool.getRunData(tokenIds[i]);
+            totalMiles += miles;
+        }
+
+        // Assert total miles for Alice
+        assertEq(totalMiles, 45);
+
+        // Check ownership of Alice's NFTs
+        for (uint256 i = 0; i < 3; i++) {
+            assertEq(clubPool.ownerOf(tokenIds[i]), alice);
+        }
+    }
+
+    function testAutoSlash() public alice_and_bob {
+        clubPool.startClub();
+
+        // Alice records a run of 50 miles (meets requirement)
+        vm.prank(alice);
+        clubPool.recordRun(alice, 50);
+
+        // Bob records a run of 4 miles
+        vm.prank(bob);
+        clubPool.recordRun(bob, 4);
+
+        // Warp forward by 7 days
+        vm.warp(block.timestamp + 7 days);
+
+        // Alice records a run of 50 miles (meets requirement)
+        vm.prank(alice);
+        clubPool.recordRun(alice, 50);
+
+        // Manually trigger a check for slashing
+        vm.prank(owner);
+        clubPool.checkSlash(alice);
+        clubPool.checkSlash(bob);
+
+        (, bool slashedAlice,,) = clubPool.members(alice);
+        assertFalse(slashedAlice);
+
+        (, bool slashedBob,,) = clubPool.members(bob);
+        assertTrue(slashedBob);
+    }
+
+    function testVetoSlash() public alice_and_bob {
+        clubPool.startClub();
+
+        vm.prank(bob);
+        clubPool.recordRun(bob, 4);
+
+        // Warp forward by 7 days
+        vm.warp(block.timestamp + 7 days);
+
+        // Manually trigger a check for slashing
+        vm.prank(owner);
+        clubPool.checkSlash(bob);
 
         vm.prank(owner);
         clubPool.vetoSlash(bob);
 
-        (, bool slashed, , uint256 slashVotes) = clubPool.members(bob);
-        assertEq(slashVotes, 0);
+        (, bool slashed,,) = clubPool.members(bob);
         assertFalse(slashed);
     }
 
-    function testClaimRewards() alice_and_bob public {
+    function testClaimRewards() public alice_and_bob {
         uint256 initialBalance = usdc.balanceOf(alice);
 
         clubPool.startClub();
@@ -117,7 +185,7 @@ contract ClubPoolTest is Test {
         assertEq(usdc.balanceOf(alice), initialBalance + stakeAmount);
     }
 
-    function testCannotClaimTwice() alice_and_bob public {
+    function testCannotClaimTwice() public alice_and_bob {
         uint256 initialBalance = usdc.balanceOf(alice);
 
         clubPool.startClub();
@@ -133,7 +201,7 @@ contract ClubPoolTest is Test {
         assertEq(usdc.balanceOf(alice), initialBalance + stakeAmount);
     }
 
-    function testClaimNonMember() alice_and_bob public {
+    function testClaimNonMember() public alice_and_bob {
         clubPool.startClub();
         vm.warp(block.timestamp + 12 weeks);
 
@@ -142,44 +210,33 @@ contract ClubPoolTest is Test {
         clubPool.claim();
     }
 
-    function testProposeAndSlash() alice_and_bob public {
-        vm.startPrank(charlie);
-        usdc.approve(address(clubPool), stakeAmount);
-        clubPool.join();
-        vm.stopPrank();
+    // function testProposeAndSlash() alice_and_bob public {
+    //     vm.startPrank(charlie);
+    //     usdc.approve(address(clubPool), stakeAmount);
+    //     clubPool.join();
+    //     vm.stopPrank();
 
-        clubPool.startClub();
+    //     clubPool.startClub();
 
-        vm.prank(alice);
-        clubPool.proposeSlash(bob);
+    //     vm.prank(alice);
+    //     clubPool.proposeSlash(bob);
 
-        vm.prank(charlie);
-        clubPool.proposeSlash(bob);
+    //     vm.prank(charlie);
+    //     clubPool.proposeSlash(bob);
 
-        (, bool slashedBob,, uint256 slashVotesBob) = clubPool.members(bob);
-        assertTrue(slashedBob);
-        assertEq(slashVotesBob, 2);
+    //     (, bool slashedBob,, uint256 slashVotesBob) = clubPool.members(bob);
+    //     assertTrue(slashedBob);
+    //     assertEq(slashVotesBob, 2);
 
-        uint256 share = stakeAmount / 2;
-        (uint256 stakeAlice,,,) = clubPool.members(alice);
-        (uint256 stakeCharlie,,,) = clubPool.members(charlie);
-        assertEq(stakeAlice, stakeAmount + share);
-        assertEq(stakeCharlie, stakeAmount + share);
-    }
+    //     uint256 share = stakeAmount / 2;
+    //     (uint256 stakeAlice,,,) = clubPool.members(alice);
+    //     (uint256 stakeCharlie,,,) = clubPool.members(charlie);
+    //     assertEq(stakeAlice, stakeAmount + share);
+    //     assertEq(stakeCharlie, stakeAmount + share);
+    // }
 
     function testRecordActivity() public {
         vm.prank(owner);
         clubPool.recordActivity(1, 101, 5000, 3600);
-    }
-
-    function testClubCount() alice_and_bob public {
-        clubPool.startClub();
-
-        vm.startPrank(charlie);
-        usdc.approve(address(clubPool2), stakeAmount);
-        clubPool2.join();
-        vm.stopPrank();
-
-        assertEq(factory.getClubPoolsCount(), 2);
     }
 }
