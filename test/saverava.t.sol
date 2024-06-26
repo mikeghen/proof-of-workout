@@ -130,7 +130,7 @@ contract ClubPoolTest is Test {
 
         // Bob records a run of 4 distance
         vm.prank(bob);
-        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
+        clubPool.recordRun(2, 2, 4, defaultTime);
 
         // Warp forward by 7 days
         vm.warp(block.timestamp + 7 days);
@@ -155,7 +155,7 @@ contract ClubPoolTest is Test {
         clubPool.startClub();
 
         vm.prank(bob);
-        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
+        clubPool.recordRun(2, 2, 4, defaultTime);
 
         // Warp forward by 7 days
         vm.warp(block.timestamp + 7 days);
@@ -180,7 +180,7 @@ contract ClubPoolTest is Test {
 
         // Bob records a run of 4 miles
         vm.prank(bob);
-        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
+        clubPool.recordRun(2, 2, 4, defaultTime);
 
         // Warp forward by 7 days
         vm.warp(block.timestamp + 7 days);
@@ -281,9 +281,9 @@ contract ClubPoolTest is Test {
 
         // Manually slash Bob and Charlie
         vm.prank(bob);
-        clubPool.recordRun(2, 2, defaultDistance, defaultTime);
+        clubPool.recordRun(2, 2, 4, defaultTime);
         vm.prank(charlie);
-        clubPool.recordRun(3, 3, defaultDistance, defaultTime);
+        clubPool.recordRun(3, 3, 10, defaultTime);
         vm.warp(block.timestamp + 7 days);
         vm.prank(owner);
         clubPool.checkSlash(bob);

@@ -110,18 +110,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     }
 
     function slash(address _runner) internal {
-        // Check if the runner has run the required miles in the past 7 days
-        uint256 totalDistance = 0;
-        uint256 balance = balanceOf(_runner);
-        uint256 checkStartTime = block.timestamp - 7 days; // TODO: Make this a parameter not hard code
-
-        for (uint256 i = 0; i < balance; i++) {
-            uint256 tokenId = tokenOfOwnerByIndex(_runner, i);
-            RunData memory runData = _runData[tokenId];
-            if (runData.timestamp >= checkStartTime) {
-                totalDistance += runData.distance;
-            }
-        }
+        uint256 totalDistance = calculateTotalDistance(_runner, block.timestamp - 7 days);
 
         if (totalDistance < requiredDistance && !members[_runner].slashed) {
             members[_runner].slashed = true;
@@ -136,6 +125,21 @@ contract ClubPool is IClubPool, ERC721Enumerable {
 
             emit Slashed(_runner);
         }
+    }
+
+    function calculateTotalDistance(address _runner, uint256 checkStartTime) internal view returns (uint256) {
+        uint256 totalDistance = 0;
+        uint256 balance = balanceOf(_runner);
+
+        for (uint256 i = 0; i < balance; i++) {
+            uint256 tokenId = tokenOfOwnerByIndex(_runner, i);
+            RunData memory runData = _runData[tokenId];
+            if (runData.timestamp >= checkStartTime) {
+                totalDistance += runData.distance;
+            }
+        }
+
+        return totalDistance;
     }
 
     // Public function for testing purposes
