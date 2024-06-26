@@ -300,4 +300,26 @@ contract ClubPoolTest is Test {
             console.log("Actual reward:", actualReward);
         }
     }
+
+    function testCannotSlashIfRequirementMet() public alice_and_bob {
+        clubPool.startClub();
+
+        // Alice records runs that meet the requirement
+        vm.startPrank(alice);
+        clubPool.recordRun(1, 1, defaultDistance / 2, defaultTime);
+        vm.warp(block.timestamp + 4 days);
+        clubPool.recordRun(1, 2, defaultDistance / 2, defaultTime);
+        vm.stopPrank();
+
+        // Warp forward by 7 days
+        vm.warp(block.timestamp + 3 days);
+
+        // Manually trigger a check for slashing
+        vm.prank(owner);
+        clubPool.checkSlash(alice);
+
+        // Check that Alice is not slashed
+        (, bool slashedAlice,,) = clubPool.members(alice);
+        assertFalse(slashedAlice);
+    }
 }
