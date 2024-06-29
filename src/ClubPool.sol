@@ -10,6 +10,7 @@ import {ERC721, ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/ext
 
 contract ClubPool is IClubPool, ERC721Enumerable {
     IERC20 public usdc;
+    uint256 public clubId;
     uint256 public duration;
     uint256 public endTime;
     uint256 public requiredDistance;
@@ -22,7 +23,6 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         uint256 stake;
         bool slashed;
         bool claimed;
-        uint256 slashVotes;
     }
 
     struct RunData {
@@ -47,7 +47,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
     }
 
     modifier onlyNotStarted() {
-        // require(!started, "Club has already started");
+        require(!started, "Club has already started");
         _;
     }
 
@@ -56,9 +56,10 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         _;
     }
 
-    constructor(address _usdc, uint256 _duration, uint256 _requiredDistance, address _owner, uint256 _stakeAmount)
+    constructor(uint256 _clubId, address _usdc, uint256 _duration, uint256 _requiredDistance, address _owner, uint256 _stakeAmount)
         ERC721("RunNFT", "RUNNFT")
     {
+        clubId = _clubId;
         usdc = IERC20(_usdc);
         duration = _duration;
         owner = _owner;
@@ -75,7 +76,7 @@ contract ClubPool is IClubPool, ERC721Enumerable {
         require(members[msg.sender].stake == 0, "Already a member");
         require(usdc.transferFrom(msg.sender, address(this), individualStake), "USDC transfer failed");
         userIdToAccount[userId] = msg.sender;
-        members[msg.sender] = Member({stake: individualStake, slashed: false, claimed: false, slashVotes: 0});
+        members[msg.sender] = Member({stake: individualStake, slashed: false, claimed: false});
         memberList.push(msg.sender);
         totalStake += individualStake;
 
@@ -117,6 +118,8 @@ contract ClubPool is IClubPool, ERC721Enumerable {
             totalStake -= members[_runner].stake;
 
             uint256 share = members[_runner].stake / (memberList.length - 1);
+
+            // TODO: this needs to be done using an index accumulation strategy
             for (uint256 i = 0; i < memberList.length; i++) {
                 if (memberList[i] != _runner) {
                     members[memberList[i]].stake += share;
@@ -186,10 +189,6 @@ contract ClubPool is IClubPool, ERC721Enumerable {
 
     function stakes(address _member) external view override returns (uint256) {
         return members[_member].stake;
-    }
-
-    function slashVotes(address _runner) external view override returns (uint256) {
-        return members[_runner].slashVotes;
     }
 
     function getMemberCount() public view returns (uint256) {

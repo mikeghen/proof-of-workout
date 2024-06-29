@@ -15,6 +15,7 @@ contract ClubPoolTest is Test {
     uint256 stakeAmount = 50 * 1e6;
     uint256 defaultDistance = 5000;
     uint256 defaultTime = 30 minutes;
+    uint256 clubId = 1;
 
     function setUp() public {
         owner = address(this);
@@ -23,7 +24,7 @@ contract ClubPoolTest is Test {
         charlie = address(0x3);
 
         usdc = new MockUSDC();
-        clubPool = new ClubPool(address(usdc), 12 weeks, defaultDistance, owner, stakeAmount);
+        clubPool = new ClubPool(clubId, address(usdc), 12 weeks, defaultDistance, owner, stakeAmount);
 
         usdc.mint(alice, 100 * 1e6);
         usdc.mint(bob, 100 * 1e6);
@@ -49,12 +50,11 @@ contract ClubPoolTest is Test {
         clubPool.join(1);
         vm.stopPrank();
 
-        (uint256 stake, bool slashed, bool claimed, uint256 slashVotes) = clubPool.members(alice);
+        (uint256 stake, bool slashed, bool claimed) = clubPool.members(alice);
 
         assertEq(stake, stakeAmount);
         assertFalse(slashed);
         assertFalse(claimed);
-        assertEq(slashVotes, 0);
     }
 
     function testStartClub() public {
@@ -144,10 +144,10 @@ contract ClubPoolTest is Test {
         clubPool.checkSlash(alice);
         clubPool.checkSlash(bob);
 
-        (, bool slashedAlice,,) = clubPool.members(alice);
+        (, bool slashedAlice,) = clubPool.members(alice);
         assertFalse(slashedAlice);
 
-        (, bool slashedBob,,) = clubPool.members(bob);
+        (, bool slashedBob,) = clubPool.members(bob);
         assertTrue(slashedBob);
     }
 
@@ -167,7 +167,7 @@ contract ClubPoolTest is Test {
         vm.prank(owner);
         clubPool.vetoSlash(bob);
 
-        (, bool slashed,,) = clubPool.members(bob);
+        (, bool slashed,) = clubPool.members(bob);
         assertFalse(slashed);
     }
 
@@ -190,7 +190,7 @@ contract ClubPoolTest is Test {
         clubPool.checkSlash(bob);
 
         // Check that Bob is slashed
-        (, bool slashedBob,,) = clubPool.members(bob);
+        (, bool slashedBob,) = clubPool.members(bob);
         assertTrue(slashedBob);
 
         // Calculate expected stake increase for Alice
@@ -198,7 +198,7 @@ contract ClubPoolTest is Test {
         uint256 expectedStakeIncrease = stakeAmount / (totalMembers - 1);
 
         // Check that Alice's stake increased
-        (uint256 stake,,,) = clubPool.members(alice);
+        (uint256 stake,,) = clubPool.members(alice);
         assertEq(stake, stakeAmount + expectedStakeIncrease);
     }
 
@@ -211,7 +211,7 @@ contract ClubPoolTest is Test {
         vm.prank(alice);
         clubPool.claim();
 
-        (uint256 stake,, bool claimed,) = clubPool.members(alice);
+        (uint256 stake,, bool claimed) = clubPool.members(alice);
         assertEq(stake, 0);
         assertTrue(claimed);
         assertEq(usdc.balanceOf(alice), initialBalance + stakeAmount);
@@ -319,7 +319,7 @@ contract ClubPoolTest is Test {
         clubPool.checkSlash(alice);
 
         // Check that Alice is not slashed
-        (, bool slashedAlice,,) = clubPool.members(alice);
+        (, bool slashedAlice,) = clubPool.members(alice);
         assertFalse(slashedAlice);
     }
 }

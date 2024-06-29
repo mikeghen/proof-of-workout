@@ -10,16 +10,16 @@ contract DeployTestnet is Script {
     function run() external {
         uint256 ownerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         uint256 runnerKey = vm.envUint("RUNNER_PRIVATE_KEY");
-
         address deployerAddress = vm.envAddress("DEPLOYER_ADDRESS");
         address runnerAddress = vm.envAddress("RUNNER_ADDRESS");
+        uint256 clubId = 1256143;
 
         // Owner deploys the club pool
         vm.startBroadcast(ownerKey);
         MockUSDC usdc = new MockUSDC();
         console.log("MockUSDC deployed at:", address(usdc));
 
-        ClubPool clubPool = new ClubPool(address(usdc), 30 days, 5, deployerAddress, 50 * 1e6);
+        ClubPool clubPool = new ClubPool(clubId, address(usdc), 30 days, 5, deployerAddress, 50 * 1e6);
         console.log("ClubPool deployed at:", address(clubPool));
 
         usdc.mint(runnerAddress, 100 * 1e6);
