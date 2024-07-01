@@ -1,12 +1,12 @@
-# Saverava White Paper
+# Run Money White Paper
 
 ## Introduction
 
-Saverava is a savings game you play with your running buddies. It merges [Strava](https://www.strava.com/) running [clubs](https://business.strava.com/blog/strava-clubs-vs-traditional-social-media) with web3 wallets for a unique "run-to-earn" experience that encourages saving money and being active. Runners join clubs, stake USDC, and track their activity via the Strava application on their phone. Clubs have requirements for activity. If a runner doesn't meet the club's requirements, they can be slashed by other members. They will lose their USDC stake and it is redistributed to compliant members. At the end of the club duration, successful runners can reclaim their stake along with interest and additional rewards, promoting commitment and discipline.
+Run Money is a savings game you play with your running buddies. It merges [Strava](https://www.strava.com/) running [clubs](https://business.strava.com/blog/strava-clubs-vs-traditional-social-media) with web3 wallets for a unique "run-to-earn" experience that encourages saving money and being active. Runners join clubs, stake USDC, and track their activity via the Strava application on their phone. Clubs have requirements for activity. If a runner doesn't meet the club's requirements, they can be slashed by other members. They will lose their USDC stake and it is redistributed to compliant members. At the end of the club duration, successful runners can reclaim their stake along with interest and additional rewards, promoting commitment and discipline.
 
 ## How It Works
 
-1. **Join a Club**: Runners join a running club through the Saverava application.
+1. **Join a Club**: Runners join a running club through the Run Money application.
 2. **Club Requirements**: Each club has specific requirements that members must meet, including:
    - Number of miles to run
    - Frequency of runs (e.g., weekly)
@@ -24,7 +24,7 @@ Strava uses webhooks to alert an Oracle to new activites. This oracle is repons
 
 #### Scenario
 
-Let's walk through a real example to illustrate how Saverava works. Suppose we have a running club called "10-Mile Challengers" with the following requirements:
+Let's walk through a real example to illustrate how Run Money works. Suppose we have a running club called "10-Mile Challengers" with the following requirements:
 - Each member must run at least 10 miles per week.
 - The challenge lasts for 3 months.
 - Each member stakes 50 USDC to join.
@@ -76,7 +76,7 @@ Let's walk through a real example to illustrate how Saverava works. Suppose we h
 - **Alice, Bob, and Dave** each claim back their initial 50 USDC plus 16.67 USDC from Charlie’s slashing, resulting in a total of 66.67 USDC.
 - **Charlie** loses his entire 50 USDC stake due to not meeting the club’s requirements.
 
-This example demonstrates how Saverava's combination of Strava integration, staking, and social slashing mechanisms ensures fair play and rewards consistent runners.
+This example demonstrates how Run Money's combination of Strava integration, staking, and social slashing mechanisms ensures fair play and rewards consistent runners.
 
 ## Application Architecture
 
@@ -336,7 +336,7 @@ These diagrams outline the key interactions between users, the web application, 
 
 ```
 +--------------------------------+
-|           Saverava             |
+|           Run Money             |
 |--------------------------------|
 |  [ Login with Strava ]         |
 +--------------------------------+
