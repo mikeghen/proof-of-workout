@@ -17,4 +17,5 @@ interface IClubPool {
     function stakes(address _member) external view returns (uint256);
     // function slashVotes(address _runner) external view returns (uint256);
     function recordRun(uint256 userId, uint256 activityId, uint256 distance, uint256 time) external;
+    function setEndTime(uint256 _endTime) external;
 }
